@@ -140,5 +140,5 @@ That's it! Now, whenever there is a service health issue that matches your event
 
 ## Create an architectural diagram (to the best of your ability) the CI/CD logical pipeline in Lucid Charts
 
-
+![CICD Pipeline](assets/Screenshot_20230218_044058.png)
 
