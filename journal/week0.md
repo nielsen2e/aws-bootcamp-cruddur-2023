@@ -121,4 +121,23 @@ aws budgets create-budget \
 **In general, service limits could impact technical flexibility by limiting the ability to scale, perform, and store data. When designing applications on AWS, it is important to consider service limits and choose the appropriate AWS services and configurations to meet the technical requirements of the application. Additionally, it is important to monitor service limits and adjust the application architecture as needed to maintain technical flexibility.**
 
 
+### How to use Amazon EventBridge to send notifications via Amazon SNS when there is a service health issue:
+
+First, create an Amazon SNS topic that you will use to send the notifications. You can do this by navigating to the Amazon SNS console and clicking on "Topics" in the left-hand navigation menu. Then click on the "Create topic" button and follow the prompts to create a new topic.
+
+Next, create a new rule in Amazon EventBridge that will trigger a notification when there is a service health issue. To do this, navigate to the EventBridge console and click on "Rules" in the left-hand navigation menu. Then click on the "Create rule" button.
+
+In the "Create rule" dialog, enter a name for the rule and select the event pattern that you want to use to trigger the notification. For example, you could use an AWS Health event pattern to detect when there is a service issue.
+
+Next, select the target for the rule. In this case, you want to send a notification to the SNS topic that you created earlier. So, select "SNS topic" as the target type and then select the SNS topic from the drop-down menu.
+
+Finally, review the rule settings and click on the "Create" button to create the rule.
+
+That's it! Now, whenever there is a service health issue that matches your event pattern, EventBridge will trigger the rule and send a notification to the SNS topic. You can then subscribe to the SNS topic to receive the notifications via email, SMS, or other methods.
+
+![Health Service](assets/Screenshot_20230218_043031.png)
+
+
+
+
 
