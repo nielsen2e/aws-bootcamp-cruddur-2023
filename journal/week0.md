@@ -8,7 +8,7 @@ I recreated the Cruddur Logical diagram.
 
 Here is a screenshot.
 
-![Logical diagram](assets/Cruddur%20Logical%20Diagram.png)
+![Logical diagram](assets/Cruddur%20Logicall%20Diagram.png)
 
 Still could make it better but its a work in progress.
 
