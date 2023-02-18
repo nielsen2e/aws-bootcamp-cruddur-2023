@@ -1,5 +1,7 @@
 # Week 0 — Billing and Architecture
 
+# Reqired Homework
+
 ## Recreating Cruddur Logical Architecture
 
 I recreated the Cruddur Logical diagram. 
