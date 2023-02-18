@@ -1,6 +1,6 @@
 # Week 0 — Billing and Architecture
 
-# Reqired Homework
+# Required Homework
 
 ## Recreating Cruddur Logical Architecture
 
