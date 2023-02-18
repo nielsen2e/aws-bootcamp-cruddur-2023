@@ -37,3 +37,25 @@ Heres a little note on the **components** of the diagram:
 - **Data Servic:** This component manages the data for the twitter app, which included user data, tweets and oter relevant information, The data service communicates with the database to store and retrieve data.
 
 - **Database:** This component represents the database where the user data, tweets, and other relevant information are stored.
+
+### Install AWS CLI
+
+- I installed the AWS CLI using gitpod.
+- I set AWS CLI to use partial autoprompt mode to make it easier to debug CLI commands.
+- The bash commands I used can also be found at [AWS CLI Install Instructions]https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
+
+Update our `.gitpod.yml` to include the following task.
+
+```sh
+tasks:
+  - name: aws-cli
+    env:
+      AWS_CLI_AUTO_PROMPT: on-partial
+    init: |
+      cd /workspace
+      curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+      unzip awscliv2.zip
+      sudo ./aws/install
+      cd $THEIA_WORKSPACE_ROOT
+```
+![AWS CLI](assets/Screenshot_20230218_120048.png)
