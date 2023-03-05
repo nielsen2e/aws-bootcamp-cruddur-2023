@@ -1,3 +1,3 @@
 # Week 1 — App Containerization
 
-## Required Homework
+## Why Containerize?
