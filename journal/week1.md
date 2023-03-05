@@ -44,3 +44,6 @@ cd ..
 > unset env vars
 - `unset BACKEND_URL`
 - `unset FRONTEND_URL`
+
+### Build image
+`docker build -t  backend-flask ./backend-flask`
