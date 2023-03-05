@@ -49,3 +49,7 @@ cd ..
 ```
 docker build -t  backend-flask ./backend-flask
 ```
+### Run image
+```
+docker run --rm -p 4567:4567 -it backend-flask
+```
