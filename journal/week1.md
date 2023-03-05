@@ -46,4 +46,6 @@ cd ..
 - `unset FRONTEND_URL`
 
 ### Build image
-`docker build -t  backend-flask ./backend-flask`
+```
+docker build -t  backend-flask ./backend-flask
+```
