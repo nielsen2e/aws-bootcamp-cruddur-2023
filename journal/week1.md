@@ -24,7 +24,7 @@ ENV FLASK_ENV=development
 EXPOSE ${PORT}
 CMD [ "python3", "-m" , "flask", "run", "--host=0.0.0.0", "--port=4567"]
 ```
-## Run Flask(**Locally**)
+### Run Flask(**Locally**)
 
 ```sh
 cd backend-flask
@@ -56,4 +56,18 @@ docker run --rm -p 4567:4567 -it backend-flask
 ### Run image and set env vars
 ```
 docker run --rm -p 4567:4567 -it -e FRONTEND_URL='*' -e BACKEND_URL='*' backend-flask
+```
+## Containerize Frontend
+Create a Dockerfile here: `frontend-react-js/Dockerfile`
+
+```dockerfile
+FROM node:16.18
+
+ENV PORT=3000
+
+COPY . /frontend-react-js
+WORKDIR /frontend-react-js
+RUN npm install
+EXPOSE ${PORT}
+CMD ["npm", "start"]
 ```
