@@ -37,3 +37,6 @@ cd ..
 > This script configures environment variables to get our endpoint working.
 
  [Endpoint](https://4567-nielsen2e-awsbootcampcr-afx5p2tp8vw.ws-eu89.gitpod.io/api/activities/home)
+ 
+- make sure to unlock the port on the port tab
+- open the link for 4567 in your browser
