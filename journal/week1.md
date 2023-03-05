@@ -40,3 +40,7 @@ cd ..
  
 - make sure to unlock the port on the port tab
 - open the link for 4567 in your browser
+
+> unset env vars
+- `unset BACKEND_URL`
+- `unset FRONTEND_URL`
