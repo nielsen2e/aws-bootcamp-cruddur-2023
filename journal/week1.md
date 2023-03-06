@@ -367,10 +367,10 @@ ENV FLASK_ENV=development
 
 EXPOSE ${PORT}
 
-#This copies the run.sh script file from the build context to the root of the Docker image file system. 
+#This copies the script.sh script file from the build context to the root of the Docker image file system. 
 COPY script.sh /script.sh
 
-#This sets the executable permission on the run.sh file inside the Docker container. 
+#This sets the executable permission on the script.sh file inside the Docker container. 
 RUN chmod +x /script.sh
 
 CMD ["/script.sh"]
