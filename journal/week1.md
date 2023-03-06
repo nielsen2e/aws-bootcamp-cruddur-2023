@@ -200,5 +200,140 @@ aws dynamodb list-tables --endpoint-url http://localhost:8000
 ```db
 aws dynamodb scan --table-name Music --query "Items" --endpoint-url http://localhost:8000
 ```
+## Create an endpoint for  the notification feature(Frontend and Backend)
+### Backend
+- Go to openapi.yml and create a new api called `/api/activities/notifications`
+```yml
+ /api/activities/notifications:
+    get:
+      description: 'Return a feed of activity for all those I follow'
+      tags:
+        - activities
+      parameters: []
+      responses:
+        '200':
+          description: Returns an array of activities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Activity'
+```
+- Go to backend-flask and define a new endpoint using the entrypoint `app.py`
+  - Create a new route using `GET` and `/api/activities/notifications`
+```python
+@app.route("/api/activities/notifications", methods=['GET'])
+def data_notifications():
+  data = NotificationsActivities.run()
+  return data, 200
+```
+- Create a new file called `notifications_activities.py` under `services` in backend-flask.
+- Create an extra line in `app.py`
+```python
+from services.notificaions_activities import*
+```
+- Go to the `home_activities.py` and copy the below code
+```python
+from datetime import datetime, timedelta, timezone
+class NotificationsActivities:
+  def run():
+    now = datetime.now(timezone.utc).astimezone()
+    results = [{
+      'uuid': '68f126b0-1ceb-4a33-88be-d90fa7109eee',
+      'handle':  'daniel',
+      'message': 'Mafejo kpami Altschool!',
+      'created_at': (now - timedelta(days=2)).isoformat(),
+      'expires_at': (now + timedelta(days=5)).isoformat(),
+      'likes_count': 5,
+      'replies_count': 1,
+      'reposts_count': 0,
+      'replies': [{
+        'uuid': '26e12864-1c26-5c3a-9658-97a10f8fea67',
+        'reply_to_activity_uuid': '68f126b0-1ceb-4a33-88be-d90fa7109eee',
+        'handle':  'Worf',
+        'message': 'This post has no honor!',
+        'likes_count': 0,
+        'replies_count': 0,
+        'reposts_count': 0,
+        'created_at': (now - timedelta(days=2)).isoformat()
+      }],
+    }
+    ]
+    return results
+```
+**Change `HomeActivities` to `NotificationsActivities`**
+- Save and check endpoint https://4567-nielsen2e-awsbootcampcr-0liohj6qoii.ws-eu89.gitpod.io/api/activities/notifications
 
+### Frontend
+- Go to `App.js` in `frontend-react-js` and add the code below:
+```python
+import './App.css';
 
+import HomeFeedPage from './pages/HomeFeedPage';
+import NotificationsFeedPage from './pages/NotificationsFeedPage';
+import UserFeedPage from './pages/UserFeedPage';
+import SignupPage from './pages/SignupPage';
+import SigninPage from './pages/SigninPage';
+import RecoverPage from './pages/RecoverPage';
+import MessageGroupsPage from './pages/MessageGroupsPage';
+import MessageGroupPage from './pages/MessageGroupPage';
+import ConfirmationPage from './pages/ConfirmationPage';
+import React from 'react';
+import {
+  createBrowserRouter,
+  RouterProvider
+} from "react-router-dom";
+
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <HomeFeedPage />
+  },
+  {
+    path: "/notifications",
+    element: <NotificationsFeedPage />
+  },
+  {
+    path: "/@:handle",
+    element: <UserFeedPage />
+  },
+  {
+    path: "/messages",
+    element: <MessageGroupsPage />
+  },
+  {
+    path: "/messages/@:handle",
+    element: <MessageGroupPage />
+  },
+  {
+    path: "/signup",
+    element: <SignupPage />
+  },
+  {
+    path: "/signin",
+    element: <SigninPage />
+  },
+  {
+    path: "/confirm",
+    element: <ConfirmationPage />
+  },
+  {
+    path: "/forgot",
+    element: <RecoverPage />
+  }
+]);
+
+function App() {
+  return (
+    <>
+      <RouterProvider router={router} />
+    </>
+  );
+}
+
+export default App;
+```
+- Create a new file called `NotificationsFeedPage.js` under `pages` in **frontend-react-js**
+- Copy `HomeFeedPage.js` into `NotificationFeedPage.js` and change `line 23` to `/api/activities/notifications` and line 13 to `NotificationsFeedPage`.
+- Change lines 60 and 75 to `notifications` and `Notifications`
