@@ -386,3 +386,19 @@ python3 -m flask run --host=0.0.0.0 --port=4567
 ```
 
 ### Push and tag image to dockerhub
+- Create an account on **dockerhub**.
+- Login to dockerhub on your local machine using `docker login` and fill your username and password.
+- Build your docker image using `docker build -t username/imagename:tag file-location`
+  - backend: 
+   `docker build -t dannyboy01/backend-flask:latest ./backend-flask`
+  - frontend:
+   `docker build -t dannyboy01/frontend-react-js:latest ./frontend-react-js`
+- Push to dockerhub:
+   - backend: 
+   `docker push dannyboy01/backend-flask:latest`
+  - frontend:
+   `docker push dannyboy01/frontend-react-js:latest`
+ - You can also pull using `docker pull username/imagename:tag`
+
+![Backend-image](assets/Screenshot_20230306_110725.png)
+![Frontend-image](assets/Screenshot_20230306_111700.png)
