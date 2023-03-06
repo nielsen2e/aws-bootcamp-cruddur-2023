@@ -621,3 +621,6 @@ CMD ["npm", "start"]
 - Copy the application code into the image and set the owner to the non-root user
 - Use npm ci --only=production instead of npm install to install production dependencies only
 - Switch to the non-root user before running the application
+
+## Launch EC2 with docker installed and pull container
+![EC2 docker instance](assets/Screenshot_20230307_124256.png)
