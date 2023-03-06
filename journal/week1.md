@@ -464,3 +464,65 @@ CMD ["npm", "start"]
 2. **node:16.18-slim stage**: This stage copies the built React application from the build stage, installs only the required dependencies, and runs the application.
 
 **By using multi-stage builds, we're able to reduce the size of the final Docker image by only including the built application and its required dependencies, without including any of the build tools or intermediate files that were needed in the build stage. This can help make the Docker image smaller and more secure, as it reduces the attack surface of the final image.**
+
+## Implement a healthcheck in the V3 Docker compose file
+To implement a healthcheck in the V3 Docker compose file, you can add a "healthcheck" field to the backend-flask service like this:
+```yml
+version: "3.8"
+services:
+  backend-flask:
+    environment:
+      FRONTEND_URL: "https://3000-${GITPOD_WORKSPACE_ID}.${GITPOD_WORKSPACE_CLUSTER_HOST}"
+      BACKEND_URL: "https://4567-${GITPOD_WORKSPACE_ID}.${GITPOD_WORKSPACE_CLUSTER_HOST}"
+    build: ./backend-flask
+    ports:
+      - "4567:4567"
+    volumes:
+      - ./backend-flask:/backend-flask
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:4567/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+  frontend-react-js:
+    environment:
+      REACT_APP_BACKEND_URL: "https://4567-${GITPOD_WORKSPACE_ID}.${GITPOD_WORKSPACE_CLUSTER_HOST}"
+    build: ./frontend-react-js
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend-react-js:/frontend-react-js
+  dynamodb-local:
+    # https://stackoverflow.com/questions/67533058/persist-local-dynamodb-data-in-volumes-lack-permission-unable-to-open-databa
+    # We needed to add user:root to get this working.
+    user: root
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
+    image: "amazon/dynamodb-local:latest"
+    container_name: dynamodb-local
+    ports:
+      - "8000:8000"
+    volumes:
+      - "./docker/dynamodb:/home/dynamodblocal/data"
+    working_dir: /home/dynamodblocal  
+  db:
+    image: postgres:13-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    ports:
+      - '5432:5432'
+    volumes: 
+      - db:/var/lib/postgresql/data
+    
+# the name flag is a hack to change the default prepend folder
+# name when outputting the image names
+networks: 
+  internal-network:
+    driver: bridge
+    name: cruddur
+volumes:
+  db:
+    driver: local
+```
+**The healthcheck for the backend-flask service uses the "curl" command to test the availability of the "/healthcheck" endpoint every 30 seconds. If the test fails, it will retry up to 5 times before marking the service as unhealthy. This helps to ensure that the service is running and available before traffic is routed to it.**
