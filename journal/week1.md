@@ -146,6 +146,11 @@ We are going to add Dynamo db and Postgres services to our docker compose file.
       sudo apt update
       sudo apt install -y postgresql-client-13 libpq-dev
 ```
+**Test Postgres**
+```
+psql -Upostgres --host localhost
+```
+
 ## Volumes
 - This should be added after networks
   - Directory volume mapping
