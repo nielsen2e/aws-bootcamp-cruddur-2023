@@ -402,3 +402,65 @@ python3 -m flask run --host=0.0.0.0 --port=4567
 
 ![Backend-image](assets/Screenshot_20230306_110725.png)
 ![Frontend-image](assets/Screenshot_20230306_111700.png)
+
+## Use multi-stage building for a Dockerfile build
+### Backend
+```dockerfile
+# Stage 1: Build and install the dependencies
+FROM python:3.10-slim-buster AS build
+
+WORKDIR /backend-flask
+
+COPY requirements.txt requirements.txt
+
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Stage 2: Copy the application and run it
+FROM python:3.10-slim-buster
+
+WORKDIR /backend-flask
+
+COPY --from=build /backend-flask .
+
+ENV FLASK_ENV=development
+
+EXPOSE ${PORT}
+
+CMD ["python3", "-m", "flask", "run", "--host=0.0.0.0", "--port=4567"]
+```
+1. **build stage**: In this stage, we copy the requirements.txt file, install the Python dependencies, and store them in a separate image layer. This reduces the size of the final image by separating the application code from its dependencies.
+
+2. **python:3.10-slim-buster stage**: In this stage, we copy the application code from the build stage, set the FLASK_ENV environment variable, expose the ${PORT} port, and start the Flask application.
+### Frontend
+```dockerfile
+# Stage 1: Build and install dependencies
+FROM node:16.18 AS build
+
+WORKDIR /frontend-react-js
+
+COPY package.json package-lock.json ./
+RUN npm install --no-cache
+
+COPY . ./
+
+RUN npm run build
+
+# Stage 2: Create a minimal image with the built application
+FROM node:16.18-slim
+
+ENV PORT=3000
+
+WORKDIR /frontend-react-js
+
+COPY --from=build /frontend-react-js/build ./build
+COPY --from=build /frontend-react-js/node_modules ./node_modules
+
+EXPOSE ${PORT}
+
+CMD ["npm", "start"]
+```
+1. **build stage**: This stage installs dependencies, builds the React application, and creates a production-ready build.
+
+2. **node:16.18-slim stage**: This stage copies the built React application from the build stage, installs only the required dependencies, and runs the application.
+
+**By using multi-stage builds, we're able to reduce the size of the final Docker image by only including the built application and its required dependencies, without including any of the build tools or intermediate files that were needed in the build stage. This can help make the Docker image smaller and more secure, as it reduces the attack surface of the final image.**
