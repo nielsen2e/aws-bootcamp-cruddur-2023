@@ -71,6 +71,10 @@ RUN npm install
 EXPOSE ${PORT}
 CMD ["npm", "start"]
 ```
+### Build container
+```
+docker build -t frontend-react-js ./frontend-react-js
+```
 ### Run Container
 ```
 docker run -p 3000:3000 -d frontend-react-js
