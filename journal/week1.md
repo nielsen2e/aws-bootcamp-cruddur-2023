@@ -163,6 +163,8 @@ volumes:
     driver: local
 ```
 ## Create Dynamo DB database
+**Example of using Dynamo db local** : https://github.com/100DaysOfCloud/challenge-dynamodb-local
+
 ### Create a Local Table
 ```db
 aws dynamodb create-table \
