@@ -526,3 +526,98 @@ volumes:
     driver: local
 ```
 **The healthcheck for the backend-flask service uses the "curl" command to test the availability of the "/healthcheck" endpoint every 30 seconds. If the test fails, it will retry up to 5 times before marking the service as unhealthy. This helps to ensure that the service is running and available before traffic is routed to it.**
+
+## Implement best practices of dockerfiles
+### Backend
+```dockerfile
+FROM python:3.10-slim-buster
+
+# Create a non-root user
+RUN adduser --disabled-password --gecos '' appuser
+
+# Inside Container
+# Make new folder inside container
+WORKDIR /backend-flask
+
+# Outside container -> Inside container
+# This contains libraries to install
+COPY requirements.txt requirements.txt
+
+# Inside container
+# Install python libraries used for the app
+RUN pip3 install --no-cache-dir --disable-pip-version-check --require-hashes -r requirements.txt \
+    && apt-get -y update \
+    && apt-get -y --purge autoremove build-essential \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Outside container -> Inside container
+# . means everything in the current directory
+# First period - (?backend-flask) (outside container)
+# second period - (/backend-flask) (Inside container)
+COPY . .
+
+# Set environment variables
+# Inside container and remain when container is running
+ENV FLASK_ENV=production
+
+# Use a non-root user
+USER appuser
+
+EXPOSE ${PORT}
+
+# Add health checks
+HEALTHCHECK CMD curl --fail http://localhost:${PORT}/health || exit 1
+
+# This command runs flask
+# python3 -m flask run --host=0.0.0.0 --port=4567
+CMD [ "python3", "-m" , "flask", "run", "--host=0.0.0.0", "--port=4567"]
+```
+1. **Use a non-root user** - Instead of running the application as the root user, create a non-root user and run the application as that user. This can help to mitigate potential security vulnerabilities.
+
+2. **Use a specific version of Python** - Instead of using the latest version of Python, use a specific version in the Dockerfile. This can help to ensure that the application is always running on a known and tested version of Python.
+
+3. **Remove build dependencies** - After installing the required Python libraries, remove any build dependencies that are no longer needed. This can help to reduce the size of the Docker image.
+
+4. **Use multi-stage builds** - Use multi-stage builds to reduce the size of the Docker image. This can help to reduce the attack surface of the image and make it easier to distribute.
+
+5. **Use a package manager** - Use a package manager like pipenv or poetry to manage the dependencies of the application. This can help to ensure that the dependencies are always up-to-date and the application is running on a known set of dependencies.
+
+6. **Add health checks** - Add health checks to the Dockerfile to ensure that the application is running properly. This can help to detect and resolve issues before they become critical.
+
+**I used the --no-cache-dir, --disable-pip-version-check and --require-hashes options while installing the Python libraries to improve security**
+
+## Frontend
+```dockerfile
+FROM node:16.18-alpine
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Add a non-root user for security
+RUN addgroup -g 1001 nodejs \
+  && adduser -u 1001 -G nodejs -s /bin/sh -D nodejs
+
+# Create and set working directory
+RUN mkdir -p /usr/src/app && chown -R nodejs:nodejs /usr/src/app
+WORKDIR /usr/src/app
+
+# Copy application code and set permissions
+COPY --chown=nodejs:nodejs . .
+
+# Install production dependencies
+RUN npm ci --only=production
+
+# Drop privileges and run the app
+USER nodejs
+EXPOSE ${PORT}
+CMD ["npm", "start"]
+```
+- Use a smaller image by switching to the alpine variant of the node image
+- Set the NODE_ENV environment variable to production to ensure that development dependencies are not installed
+- Add a non-root user to the image for improved security
+- Create a directory for the application and set it as the working directory
+- Copy the application code into the image and set the owner to the non-root user
+- Use npm ci --only=production instead of npm install to install production dependencies only
+- Switch to the non-root user before running the application
