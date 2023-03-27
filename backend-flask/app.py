@@ -38,10 +38,13 @@ tracer = trace.get_tracer(__name__)
 #X-ray -----
 xray_url = os.getenv("AWS_XRAY_URL")
 xray_recorder.configure(service='backend-flask', dynamic_naming=xray_url)
-XRayMiddleware(app, xray_recorder)
+
 
 
 app = Flask(__name__)
+
+#X-ray -----
+XRayMiddleware(app, xray_recorder)
 # HoneyComb ---------------
 # Initialize automatic instrumentation with Flask
 FlaskInstrumentor().instrument_app(app)
