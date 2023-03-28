@@ -86,6 +86,123 @@ OTEL_SERVICE_NAME: "${HONEYCOMB_SERVICE_NAME}"
 - cd ..
 - docker compose up
 
-## Known issues:
+### Known issues:
 - Running docker-compose up using the left click didn't export the API key because it created a new shell and gitpod didn't
   export the key to the container. It happend sometimes.
+  
+## AWS X-RAY
+AWS X-Ray is a service offered by Amazon Web Services (AWS) that helps developers analyze and debug distributed applications, such as those built using microservices architecture. With X-Ray, developers can trace requests made to their application as they travel through different microservices, and can visualize the dependencies between those microservices.
+
+X-Ray provides a variety of tools and features to help developers debug their applications, including:
+
+**Tracing:** X-Ray provides a tracing API that developers can use to instrument their application code and capture data about requests as they move through the application.
+
+**Service map:** X-Ray generates a service map that shows the dependencies between the different microservices in an application. This can help developers identify bottlenecks and areas for optimization.
+
+**Insights:** X-Ray provides a dashboard that displays information about the performance of an application, including error rates, response times, and throughput.
+
+**Integration:** X-Ray integrates with a variety of AWS services, including EC2, Lambda, and Elastic Beanstalk, as well as with popular third-party tools like Kubernetes and Istio.
+
+### Instrument AWS X-Ray for Flask
+
+
+```sh
+export AWS_REGION="us-east-1"
+gp env AWS_REGION="us-east-1"
+```
+
+Add to the `requirements.txt`
+
+```py
+aws-xray-sdk
+```
+
+Install pythonpendencies
+
+```sh
+pip install -r requirements.txt
+```
+
+Add to `app.py`
+
+```py
+from aws_xray_sdk.core import xray_recorder
+from aws_xray_sdk.ext.flask.middleware import XRayMiddleware
+
+xray_url = os.getenv("AWS_XRAY_URL")
+xray_recorder.configure(service='Cruddur', dynamic_naming=xray_url)
+XRayMiddleware(app, xray_recorder)
+```
+
+### Setup AWS X-Ray Resources
+
+Add `aws/json/xray.json`
+
+```json
+{
+  "SamplingRule": {
+      "RuleName": "Cruddur",
+      "ResourceARN": "*",
+      "Priority": 9000,
+      "FixedRate": 0.1,
+      "ReservoirSize": 5,
+      "ServiceName": "Cruddur",
+      "ServiceType": "*",
+      "Host": "*",
+      "HTTPMethod": "*",
+      "URLPath": "*",
+      "Version": 1
+  }
+}
+```
+
+```sh
+FLASK_ADDRESS="https://4567-${GITPOD_WORKSPACE_ID}.${GITPOD_WORKSPACE_CLUSTER_HOST}"
+aws xray create-group \
+   --group-name "Cruddur" \
+   --filter-expression "service(\"backend-flask\")"
+```
+
+```sh
+aws xray create-sampling-rule --cli-input-json file://aws/json/xray.json
+```
+
+ [Install X-ray Daemon](https://docs.aws.amazon.com/xray/latest/devguide/xray-daemon.html)
+
+[Github aws-xray-daemon](https://github.com/aws/aws-xray-daemon)
+[X-Ray Docker Compose example](https://github.com/marjamis/xray/blob/master/docker-compose.yml)
+
+
+```sh
+ wget https://s3.us-east-2.amazonaws.com/aws-xray-assets.us-east-2/xray-daemon/aws-xray-daemon-3.x.deb
+ sudo dpkg -i **.deb
+ ```
+
+### Add Deamon Service to Docker Compose
+
+```yml
+  xray-daemon:
+    image: "amazon/aws-xray-daemon"
+    environment:
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+      AWS_REGION: "us-east-1"
+    command:
+      - "xray -o -b xray-daemon:2000"
+    ports:
+      - 2000:2000/udp
+```
+
+We need to add these two env vars to our backend-flask in our `docker-compose.yml` file
+
+```yml
+      AWS_XRAY_URL: "*4567-${GITPOD_WORKSPACE_ID}.${GITPOD_WORKSPACE_CLUSTER_HOST}*"
+      AWS_XRAY_DAEMON_ADDRESS: "xray-daemon:2000"
+```
+
+### Check service data for last 10 minutes
+
+```sh
+EPOCH=$(date +%s)
+aws xray get-service-graph --start-time $(($EPOCH-600)) --end-time $EPOCH
+```
