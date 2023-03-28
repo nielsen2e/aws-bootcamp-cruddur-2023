@@ -335,3 +335,175 @@ def rollbar_test():
 
 
 ![Rollbar](/journal/assets/Screenshot_20230328_012637.png)
+
+## Homework Challenges
+### Instrument Honeycomb for the frontend-application to observe network latency between frontend and backend
+1. Install the Honeycomb SDK for JavaScript:
+
+```js
+npm install --save @honeycombio/libhoney-js
+```
+2. Initialize the Honeycomb SDK with your API key and other configuration settings:
+
+```js
+import libhoney from '@honeycombio/libhoney-js';
+
+const honey = libhoney({
+  writeKey: 'YOUR_API_KEY',
+  dataset: 'frontend-backend-latency',
+  serviceName: 'frontend',
+});
+```
+3. Add instrumentation code to capture network latency metrics:
+
+```js
+import React, { useState, useEffect } from 'react';
+
+function App() {
+  const [data, setData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    setIsLoading(true);
+    const start = Date.now();
+    fetch('https://backend.example.com/data')
+      .then(response => {
+        const end = Date.now();
+        honey.sendNow({
+          requestDurationMs: end - start,
+          requestStatus: response.status,
+          requestSizeBytes: response.headers.get('Content-Length'),
+        });
+        return response.json();
+      })
+      .then(data => {
+        setData(data);
+        setIsLoading(false);
+      })
+      .catch(error => {
+        const end = Date.now();
+        honey.sendNow({
+          requestDurationMs: end - start,
+          requestError: error.message,
+        });
+        setIsLoading(false);
+      });
+  }, []);
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!data) {
+    return <div>Error fetching data</div>;
+  }
+
+  return (
+    <div>
+      <h1>Data from backend:</h1>
+      <pre>{JSON.stringify(data, null, 2)}</pre>
+    </div>
+  );
+}
+```
+- we use useEffect() to make a request to the backend server when the component is mounted and capture the request duration, status, and response size (in bytes). If an error occurs, we capture the error message instead. We also use useState() to manage the loading state and display a loading spinner while the request is in progress.
+
+4. Send the captured metrics to Honeycomb using the SDK's API:
+
+```js
+function sendMetricsAndCloseHoneycomb() {
+  honey.flush();
+  honey.close();
+}
+
+ReactDOM.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+  document.getElementById('root'),
+  sendMetricsAndCloseHoneycomb,
+);
+```
+- We call honey.flush() to ensure that all pending events are sent to Honeycomb before the application exits. We also call honey.close() to close the Honeycomb client and free up any resources.
+
+### Add custom instrumentation to Honeycomb to add more attributes eg. UserId, Add a custom span
+1. Add instrumentation code to capture network latency metrics with additional attributes:
+
+```js
+import React, { useState, useEffect } from 'react';
+
+function App() {
+  const [data, setData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const userId = localStorage.getItem('user_id'); // assuming user_id is stored in localStorage
+
+  useEffect(() => {
+    setIsLoading(true);
+    const start = Date.now();
+    const span = honey.startSpan({ name: 'fetch_data' }); // start a custom span
+
+    fetch('https://backend.example.com/data')
+      .then(response => {
+        const end = Date.now();
+        honey.sendNow({
+          requestDurationMs: end - start,
+          requestStatus: response.status,
+          requestSizeBytes: response.headers.get('Content-Length'),
+          userId: userId, // add the user id to the event
+        }, span); // add the custom span to the event
+        return response.json();
+      })
+      .then(data => {
+        setData(data);
+        setIsLoading(false);
+      })
+      .catch(error => {
+        const end = Date.now();
+        honey.sendNow({
+          requestDurationMs: end - start,
+          requestError: error.message,
+          userId: userId, // add the user id to the event
+        }, span); // add the custom span to the event
+        setIsLoading(false);
+      })
+      .finally(() => {
+        honey.endSpan(span); // end the custom span
+      });
+  }, []);
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!data) {
+    return <div>Error fetching data</div>;
+  }
+
+  return (
+    <div>
+      <h1>Data from backend:</h1>
+      <pre>{JSON.stringify(data, null, 2)}</pre>
+    </div>
+  );
+}
+```
+- we use localStorage to retrieve the userId value, assuming it was stored previously. We also create a custom span using honey.startSpan() and add it to the event using the span parameter in honey.sendNow(). After the fetch request is complete, we end the custom span using honey.endSpan().
+
+
+2. Send the captured metrics to Honeycomb using the SDK's API:
+
+```js
+function sendMetricsAndCloseHoneycomb() {
+  honey.flush();
+  honey.close();
+}
+
+ReactDOM.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+  document.getElementById('root'),
+  sendMetricsAndCloseHoneycomb,
+);
+```
+3. Visualize and analyze the captured metrics in the Honeycomb dashboard. You can create queries and charts to visualize the network latency between the frontend and backend, and filter by the userId attribute to see the metrics specific to a particular user. You can also create queries and charts to visualize the custom span data and identify performance bottlenecks.
