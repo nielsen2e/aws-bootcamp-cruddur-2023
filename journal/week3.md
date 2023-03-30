@@ -67,3 +67,4 @@ One of the key features of AWS Amplify is its ability to simplify the developmen
 cd frontend-react-js
 npm i aws-amplify --save
 ```
+This command will install AWS Amplify and add it to `package.json`
