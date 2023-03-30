@@ -28,7 +28,7 @@ Cognito provides two main features: **User Pools and Identity Pools**.
 - Identity broker for AWS Resources wit temporary credentials.
 - Can extend users to AWS Resources easily.
 
-## Amazon Cognito Best Practices - AWS
+## Amazon Cognito Security Best Practices - AWS
 1. AWS Services - API Gateway, AWS Resouces shared with the application Client (Bakcend or back channels)
 2. AWS WAF with web ACLs for rate limirting, Allow/Dent list, Deny Access from region and many more WAF management rules similar to OWASP(market place)
 3. Amazon Cognito compliance standard is what your business requires.
