@@ -23,7 +23,7 @@ Cognito provides two main features: **User Pools and Identity Pools**.
 
 **Identity Pools**, on the other hand, allows developers to securely access AWS services and resources on behalf of their users, by providing temporary AWS credentials.
 
-## Why use Amazn Cognito?
+## Why use Amazon Cognito?
 - Ability to access AWS Resources for the application being built.
 - Identity broker for AWS Resources wit temporary credentials.
 - Can extend users to AWS Resources easily.
@@ -46,3 +46,14 @@ Cognito provides two main features: **User Pools and Identity Pools**.
 7. Access Token scope - should be limited.
 8. JWT Token best practice - no sensitive info.
 9. Encryotion in Transit for API calls.
+
+
+## Cost
+The Cognito Your User Pool feature has a free tier of 50,000 MAUs ( monthly active users) per account for users who sign in directly to Cognito User Pools and 50 MAUs for users federated through SAML 2.0 based identity providers. The free tier does not automatically expire at the end of your 12 month AWS Free Tier term, and it is available to both existing and new AWS customers indefinitely. Please note - the free tier pricing isn’t available for both Your User Pool feature and SAML or OIDC federation in the AWS GovCloud regions.
+
+For reference click [Here](https://aws.amazon.com/cognito/pricing/).
+
+# Setup Cognito User Pool
+
+Click [here](https://scribehow.com/shared/How_to_Create_a_User_Pool_in_AWS_Cognito__KfU7GrqHS2ex3SW-xNLcSw) to create the user pool using the AWS console
+
