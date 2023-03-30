@@ -57,3 +57,13 @@ For reference click [Here](https://aws.amazon.com/cognito/pricing/).
 
 Click [here](https://scribehow.com/shared/How_to_Create_a_User_Pool_in_AWS_Cognito__KfU7GrqHS2ex3SW-xNLcSw) to create the user pool using the AWS console
 
+## AWS Amplify
+AWS Amplify is a development platform and set of tools provided by Amazon Web Services (AWS) that allows developers to build and deploy cloud-powered mobile and web applications quickly and easily. It provides a variety of features and services, including hosting, authentication, data storage, and API integrations.
+
+One of the key features of AWS Amplify is its ability to simplify the development process by providing pre-built components and libraries that can be easily integrated into an application. These components include user authentication, real-time data synchronization, push notifications, and more.
+
+## Configure AWS Amplify
+```
+cd frontend-react-js
+npm i aws-amplify --save
+```
