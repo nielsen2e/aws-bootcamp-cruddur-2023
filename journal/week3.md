@@ -100,3 +100,102 @@ REACT_APP_CLIENT_ID: "${APP_CLIENT_ID}"
 To get `APP_CLIENT_ID` click your user pool and  under `App integration`, go to `App client and analytics`
 
 **NB:** Set env vars `AWS_USER_POOLS_ID` and `APP_CLIENT_ID` on the terminal using export and also on gitpod using `gp env "env var" `
+
+## Conditionally show components based on logged in or logged out
+
+In the **homefeedpage.js** insert the following command
+```js
+import { Auth } from 'aws-amplify';
+```
+
+Skip this part because it has been implemented
+```js
+const [user, setUser] = React.useState(null); To manage user variable or objects
+```
+
+delete the code with the  cookies 
+```js
+  const checkAuth = async () => {
+    console.log('checkAuth')
+    // [TODO] Authenication
+    if (Cookies.get('user.logged_in')) {
+        display_name: Cookies.get('user.name'),
+        handle: Cookies.get('user.username')
+    }
+  };
+```
+
+and replace with the following that used cognito
+```js
+// check if we are authenicated
+const checkAuth = async () => {
+  Auth.currentAuthenticatedUser({
+    // Optional, By default is false. 
+    // If set to true, this call will send a 
+    // request to Cognito to get the latest user data
+    bypassCache: false 
+  })
+  .then((user) => {
+    console.log('user',user);
+    return Auth.currentAuthenticatedUser()
+  }).then((cognito_user) => {
+      setUser({
+        display_name: cognito_user.attributes.name,
+        handle: cognito_user.attributes.preferred_username
+      })
+  })
+  .catch((err) => console.log(err));
+};
+
+```
+
+Skip this part
+```js
+// check when the page loads if we are authenicated
+React.useEffect(()=>{
+  loadData();
+  checkAuth();
+}, [])
+```
+
+Skip this part as well.
+```js
+<DesktopNavigation user={user} active={'home'} setPopped={setPopped} />
+<DesktopSidebar user={user} />
+```
+
+We'll update `ProfileInfo.js`
+
+On profileinfo.js, delete the following code
+```js
+import Cookies from 'js-cookie'
+```
+and replace with:
+
+```js
+import { Auth } from 'aws-amplify';
+```
+
+remove the following code
+```js
+    console.log('signOut')
+    // [TODO] Authenication
+    Cookies.remove('user.logged_in')
+    //Cookies.remove('user.name')
+    //Cookies.remove('user.username')
+    //Cookies.remove('user.email')
+    //Cookies.remove('user.password')
+    //Cookies.remove('user.confirmation_code')
+    window.location.href = "/"
+```
+
+and  replace with the new signout
+```js
+const signOut = async () => {
+    try {
+        await Auth.signOut({ global: true });
+        window.location.href = "/"
+    } catch (error) {
+        console.log('error signing out: ', error);
+}
+```
