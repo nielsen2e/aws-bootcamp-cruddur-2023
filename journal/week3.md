@@ -392,3 +392,50 @@ const onsubmit = async (event) => {
   return false
 }
 ```
+## Implement Recovery Page
+In the `Recoverypage.js`, add the following code:
+```js
+import { Auth } from 'aws-amplify';
+```
+remove the following code
+```js
+  const onsubmit_send_code = async (event) => {
+    event.preventDefault();
+    console.log('onsubmit_send_code')
+    return false
+  }
+```
+and replace with the following code
+```js
+const onsubmit_send_code = async (event) => {
+    event.preventDefault();
+    setErrors('')
+    Auth.forgotPassword(username)
+    .then((data) => setFormState('confirm_code') )
+    .catch((err) => setErrors(err.message) );
+    return false
+  }
+```
+remove the following code
+```js
+  const onsubmit_confirm_code = async (event) => {
+    event.preventDefault();
+    console.log('onsubmit_confirm_code')
+    return false
+  }
+```
+and replace with the following code
+```
+const onsubmit_confirm_code = async (event) => {
+  event.preventDefault();
+  setErrors('')
+  if (password == passwordAgain){
+    Auth.forgotPasswordSubmit(username, code, password)
+    .then((data) => setFormState('success'))
+    .catch((err) => setErrors(err.message) );
+  } else {
+    setErrors('Passwords do not match')
+  }
+  return false
+}
+```
