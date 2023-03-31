@@ -40,17 +40,17 @@ export default function ConfirmationPage() {
     }
   }
 
- const onsubmit = async (event) => {
-  event.preventDefault();
-  setErrors('')
-  try {
-    await Auth.confirmSignUp(email, code);
-    window.location.href = "/"
-  } catch (error) {
-    setErrors(error.message)
+  const onsubmit = async (event) => {
+    event.preventDefault();
+    setErrors('')
+    try {
+      await Auth.confirmSignUp(email, code);
+      window.location.href = "/"
+    } catch (error) {
+      setErrors(error.message)
+    }
+    return false
   }
-  return false
-}
 
   let el_errors;
   if (errors){
