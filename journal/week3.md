@@ -250,6 +250,15 @@ Run `docker compose up -d` and try to login using any username and password.
  - if you get  "NotAuthorizedException: Incorrect user or password", it's working fine.
  - if you get "SCP_AUTH_NOT_enabled", there is a problem with cognito user pool configuration,Go and recreate. Make sure under app integration, it's on Public Client.
 
+Create a user in the Cognito user pool and use the below command to change the password:
+```yml
+aws cognito-idp admin-set-user-password \
+  --user-pool-id <your-user-pool-id> \
+  --username <username> \
+  --password <password> \
+  --permanent
+```
+
 ## Implement Signup page
 Go to pages and edit `SignupPage.js`
 
