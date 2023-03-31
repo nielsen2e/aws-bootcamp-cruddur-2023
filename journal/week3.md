@@ -262,3 +262,56 @@ aws cognito-idp admin-set-user-password \
 ## Implement Signup page
 Go to pages and edit `SignupPage.js`
 
+**NB:** We delete our user created from the AWS console because it is no lomger needed.
+ remove the following code
+```js
+import Cookies from 'js-cookie'
+```
+and replace with the following
+```js
+import { Auth } from 'aws-amplify';
+```
+
+Remove the following code
+```js
+  const onsubmit = async (event) => {
+    event.preventDefault();
+    console.log('SignupPage.onsubmit')
+    // [TODO] Authenication
+    Cookies.set('user.name', name)
+    Cookies.set('user.username', username)
+    Cookies.set('user.email', email)
+    Cookies.set('user.password', password)
+    Cookies.set('user.confirmation_code',1234)
+    window.location.href = `/confirm?email=${email}`
+    return false
+  }
+```
+and add the following code
+```js
+const onsubmit = async (event) => {
+    event.preventDefault();
+    setErrors('')
+    try {
+      const { user } = await Auth.signUp({
+        username: email,
+        password: password,
+        attributes: {
+          name: name,
+          email: email,
+          preferred_username: username,
+        },
+        autoSignIn: { // optional - enables auto sign in after user is confirmed
+          enabled: true,
+        }
+      }) ;
+      console.log(user);
+      window.location.href = `/confirm?email=${email}`
+    } catch (error) {
+        console.log(error);
+        setErrors(error.message)
+    }
+    return false
+  }
+```
+
