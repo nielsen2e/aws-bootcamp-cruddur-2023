@@ -199,3 +199,57 @@ const signOut = async () => {
         console.log('error signing out: ', error);
 }
 ```
+## Implement the Signin Page
+Go to pages and edit `SigninPage.js`
+```js
+import Cookies from 'js-cookie'
+
+```
+
+and replace with the following
+```js
+import { Auth } from 'aws-amplify';
+```
+
+remove the following code 
+```js
+  const onsubmit = async (event) => {
+    event.preventDefault();
+    setErrors('')
+    console.log('onsubmit')
+    if (Cookies.get('user.email') === email && Cookies.get('user.password') === password){
+      Cookies.set('user.logged_in', true)
+      window.location.href = "/"
+    } else {
+      setErrors("Email and password is incorrect or account doesn't exist")
+    }
+    return false
+  }
+```
+and replace it with the new one
+```js
+const onsubmit = async (event) => {
+    setErrors('')
+    event.preventDefault();
+    Auth.signIn(email, password)
+    .then(user => {
+      console.log('user',user)
+      localStorage.setItem("access_token", user.signInUserSession.accessToken.jwtToken)
+      window.location.href = "/"
+    })
+    .catch(error => {
+      if (error.code == 'UserNotConfirmedException') {
+        window.location.href = "/confirm"
+      }
+      setErrors(error.message)
+      });
+    return false
+  }
+```
+Run `docker compose up -d` and try to login using any username and password.
+ - if you get  "NotAuthorizedException: Incorrect user or password", it's working fine.
+ - if you get "SCP_AUTH_NOT_enabled", there is a problem with cognito user pool configuration,Go and recreate. Make sure under app integration, it's on Public Client.
+
+## Implement Signup page
+Go to pages and edit `SignupPage.js`
+
