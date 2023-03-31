@@ -425,7 +425,7 @@ remove the following code
   }
 ```
 and replace with the following code
-```
+```js
 const onsubmit_confirm_code = async (event) => {
   event.preventDefault();
   setErrors('')
