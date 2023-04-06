@@ -13,3 +13,7 @@ watchtower
 
 blinker
 rollbar
+
+Flask-AWSCognito
+
+jose
