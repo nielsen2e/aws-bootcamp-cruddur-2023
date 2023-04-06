@@ -439,3 +439,11 @@ const onsubmit_confirm_code = async (event) => {
   return false
 }
 ```
+## Backend Implementation for Cognito
+### Authenticating Server Side
+We need to protect our Api endpoints. We need to pass along our access token that we stored in our local storage in `SigninPage.js`. This needs to be passed along our api calls.
+Add in the `HomeFeedPage.js` a header to pass along the access token after line 26.
+```js
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem("access_token")}`
+  }
