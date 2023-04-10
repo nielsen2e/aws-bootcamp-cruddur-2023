@@ -49,3 +49,66 @@ aws rds create-db-instance \
   ```
   
   **NB: You can stop your db instance temporarily for 7 days**
+  
+  ### Connect to Postgres
+  There are 2 ways to connect to Postgres:
+  - Using the psql client
+  - Using the database explorer.
+ 
+**NB: To connect to psql via the psql client cli tool remember to use the host flag to specific localhost.**
+
+`psql -Upostgres --host localhost`
+
+## Common PSQL commands
+```sql
+\x on -- expanded display when looking at data
+\q -- Quit PSQL
+\l -- List all databases
+\c database_name -- Connect to a specific database
+\dt -- List all tables in the current database
+\d table_name -- Describe a specific table
+\du -- List all users and their roles
+\dn -- List all schemas in the current database
+CREATE DATABASE database_name; -- Create a new database
+DROP DATABASE database_name; -- Delete a database
+CREATE TABLE table_name (column1 datatype1, column2 datatype2, ...); -- Create a new table
+DROP TABLE table_name; -- Delete a table
+SELECT column1, column2, ... FROM table_name WHERE condition; -- Select data from a table
+INSERT INTO table_name (column1, column2, ...) VALUES (value1, value2, ...); -- Insert data into a table
+UPDATE table_name SET column1 = value1, column2 = value2, ... WHERE condition; -- Update data in a table
+DELETE FROM table_name WHERE condition; -- Delete data from a table
+```
+
+## Create Databse using psql client
+```sql
+CREATE database cruddur;
+```
+### Create Tables
+We need to create a schema for our db which will serve as a structure for our data.
+Go to `backend-flask` and create a folder called db and a file caled `schema.sql`
+
+### Add UUID Extension
+UUID - Universally Unique Identifier generates a big strng or number that ranadoms which eliminates conflicts and helps us obscure our number count.
+```sql
+CREATE EXTENSION "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+```
+Add the 2nd option to `schema.sql`
+
+Exit postgres and import script:
+`psql cruddur < backend-flask/db/schema.sql -h localhost -U postgres`
+
+## Create Env Vars for Connection Url String
+Instead of typing password eveyrtime we log in to postgres, we can use a **connection Url String** which is a way of providing all the details that it needs to authenticate to the server.
+
+**Connection url string format:**
+
+`postgresql://[user[:password]@][netloc][:port][/dbname][?param1=value1&...]`
+
+```var
+export CONNECTION_URL="postgresql://postgres:password@localhost:5432/cruddur"
+gp env CONNECTION_URL="postgresql://postgres:password@localhost:5432/cruddur"
+```
+Run `psql CONNECTION_URL` TO LOGIN.
+
+Now you can sign it to postgress without entering password.
