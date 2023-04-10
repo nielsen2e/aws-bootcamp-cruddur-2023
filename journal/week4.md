@@ -112,3 +112,59 @@ gp env CONNECTION_URL="postgresql://postgres:password@localhost:5432/cruddur"
 Run `psql CONNECTION_URL` TO LOGIN.
 
 Now you can sign it to postgress without entering password.
+
+## Create Connection Url String for AWS RDS Instance
+
+`export PROD_CONNECTION_URL="postgresql://cruddurroot:huEE33z2Qvl3834@cruddur-db-instance.cdan7agqzige.us-east-1.rds.amazonaws.com:5432/cruddur"`
+
+`gp env PROD_CONNECTION_URL="postgresql://cruddurroot:huEE33z2Qvl3834@cruddur-db-instance.cdan7agqzige.us-east-1.rds.amazonaws.com:5432/cruddur"`
+> Test Later
+
+We want to be able to adding or removing from the schema file so:
+
+Create a new folder `bin` in `backend-flask` and create 3 files called:
+```sql
+db-create
+db-drop
+db-schema-load
+```
+These files are going to run bash scripts so insert a shebang into the top line of the 3 files:
+`#! /usr/bin/bash`
+
+Lets test the scripts:
+
+Go into `db-drop` and type `psql $CONNECTION_URL -c "drop database cruddur;"`
+
+Make the files executable:
+```bash
+chmod 744 bin/db-create
+chmod 744 bin/db-drop
+chmod 744 bin/db-schema-load
+```
+
+We are trying to drop our db `cruddur` while logging in to postgress but its not working so we need to use a tool called `sed` to edit the string.
+
+`NO_DB_CONNECTION_URL=$(sed 's/\/cruddur//g' <<<"$CONNECTION_URL")`
+
+Now edit the file `db-drop` with the code below and run `./bin/db-drop`
+```sh
+#! /usr/bin/bash
+
+echo "db-drop"
+NO_DB_CONNECTION_URL=$(sed 's/\/cruddur//g' <<<"$CONNECTION_URL")
+psql $NO_DB_CONNECTION_URL -c "drop database cruddur;"
+```
+
+Do the same for `db-create`
+`db-create` file
+```sh
+#! /usr/bin/bash
+
+echo "db-create"
+
+#cant connect to cruddur if its not created yet
+NO_DB_CONNECTION_URL=$(sed 's/\/cruddur//g' <<<"$CONNECTION_URL")
+psql $NO_DB_CONNECTION_URL -c "create database cruddur;"
+```
+
+
