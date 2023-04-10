@@ -120,7 +120,13 @@ Now you can sign it to postgress without entering password.
 `gp env PROD_CONNECTION_URL="postgresql://cruddurroot:huEE33z2Qvl3834@cruddur-db-instance.cdan7agqzige.us-east-1.rds.amazonaws.com:5432/cruddur"`
 > Test Later
 
-We want to be able to adding or removing from the schema file so:
+### Shell Script to connect to DB
+
+We want to be able to add or remove from the schema file so:
+
+For things we commonly need to do we can create a new directory called `bin`
+
+We'll create an new folder called `bin` to hold all our bash scripts.
 
 Create a new folder `bin` in `backend-flask` and create 3 files called:
 ```sql
@@ -132,6 +138,8 @@ These files are going to run bash scripts so insert a shebang into the top line 
 `#! /usr/bin/bash`
 
 Lets test the scripts:
+
+### Shell Script to Drop DB
 
 Go into `db-drop` and type `psql $CONNECTION_URL -c "drop database cruddur;"`
 
@@ -155,8 +163,8 @@ NO_DB_CONNECTION_URL=$(sed 's/\/cruddur//g' <<<"$CONNECTION_URL")
 psql $NO_DB_CONNECTION_URL -c "drop database cruddur;"
 ```
 
-Do the same for `db-create`
-`db-create` file
+### Shell Script to create DB
+Do the same for `db-create` and run `./bin/db-create` or `source bin/db-create`
 ```sh
 #! /usr/bin/bash
 
@@ -166,5 +174,127 @@ echo "db-create"
 NO_DB_CONNECTION_URL=$(sed 's/\/cruddur//g' <<<"$CONNECTION_URL")
 psql $NO_DB_CONNECTION_URL -c "create database cruddur;"
 ```
+### Shell Script for Schema load
+```sh
+#! /usr/bin/bash
 
+echo "db-schema-load"
 
+schema_path="$(realpath .)/db/schema.sql"
+echo $schema_path
+
+psql $CONNECTION_URL cruddur < $schema_path
+```
+### Toggle between Local mode and Production mode
+We will introduce `if else` statement.
+```sh
+#! /usr/bin/bash
+
+#echo "== db-schema-load"
+CYAN='\033[1;36m'
+NO_COLOR='\033[0m'
+LABEL="db-schema-load"
+printf "${CYAN}== ${LABEL}${NO_COLOR}\n"
+
+schema_path="$(realpath .)/db/schema.sql"
+echo $schema_path
+
+if [ "$1" = "prod" ]; then
+  echo "Running in production mode"
+  URL=$PROD_CONNECTION_URL
+else
+  URL=$CONNECTION_URL
+fi
+
+psql $URL cruddur < $schema_path
+```
+**NB:** For more info about color, Refer to the following [link](https://stackoverflow.com/questions/5947742/how-to-change-the-output-color-of-echo-in-linux)
+
+### Create Tables for Users and Activities
+
+[Postgres Create Tables](https://www.postgresql.org/docs/current/sql-createtable.html)
+
+```sql
+DROP TABLE IF EXISTS public.users;
+DROP TABLE IF EXISTS public.activities;
+```
+
+```sql
+CREATE TABLE public.users (
+  uuid UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  display_name text,
+  handle text,
+  cognito_user_id text,
+  created_at TIMESTAMP default current_timestamp NOT NULL
+);
+```
+
+```sql
+CREATE TABLE public.activities (
+  uuid UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_uuid UUID NOT NULL,
+  message text NOT NULL,
+  replies_count integer DEFAULT 0,
+  reposts_count integer DEFAULT 0,
+  likes_count integer DEFAULT 0,
+  reply_to_activity_uuid integer,
+  expires_at TIMESTAMP,
+  created_at TIMESTAMP default current_timestamp NOT NULL
+);
+```
+### Shell Script for db connect
+
+Create a new file called `db-connect`
+```sql
+#! /usr/bin/bash
+
+psql $CONNECTION_URL
+```
+#### Change permission
+```sh
+chmod 744 bin/db-connect
+```
+
+### Shell script for db seed
+
+Create a new file in `db` called `seed.sql`
+
+Create a new file in `bin` called `db-seed`
+```sql
+#! /usr/bin/bash
+#echo "== db-seed-load"
+CYAN='\033[1;36m'
+NO_COLOR='\033[0m'
+LABEL="db-seed"
+printf "${CYAN}== ${LABEL}${NO_COLOR}\n"
+
+seed_path="$(realpath .)/db/seed.sql"
+
+echo $seed_path
+
+if [ "$1" = "prod" ]; then
+ echo "Running in production mode"
+ URL=$PROD_CONNECTION_URL
+else
+ URL=$CONNECTION_URL
+fi
+
+psql $URL cruddur < $seed_path
+```
+**Insert the following code in `seed.sql`**
+```sql
+-- this file was manually created
+INSERT INTO public.users (display_name, handle, cognito_user_id)
+VALUES
+  ('Andrew Brown', 'andrewbrown' ,'MOCK'),
+  ('Andrew Bayko', 'bayko' ,'MOCK');
+
+INSERT INTO public.activities (user_uuid, message, expires_at)
+VALUES
+  (
+    (SELECT uuid from public.users WHERE users.handle = 'andrewbrown' LIMIT 1),
+    'This was imported as seed data!',
+    current_timestamp + interval '10 day'
+  )
+  ```
+  
