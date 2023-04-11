@@ -330,7 +330,7 @@ chmod 744 bin/db-sessions
 > We could have idle connections left open by our Database Explorer extension, try disconnecting and checking again the sessions.
 
 ### Easily setup (reset) everything for DB
-This scrript enables us to easily run our command from one script instead of multiple commands using the terminal.
+This script enables us to easily run our command from one script instead of multiple commands using the terminal.
 
 Create a new file called `db-setup` in `bin` folder
 ```sh
@@ -354,3 +354,8 @@ source "$bin_path/db-seed"
 ```sh
 chmod 744 bin/db-setup
 ```
+### Install driver for psql
+Every language has a driver like videographics driver for windows.
+
+This driver helps us connect to postgres to work with the software.
+
