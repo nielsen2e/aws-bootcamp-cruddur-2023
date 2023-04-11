@@ -459,13 +459,15 @@ export GITPOD_IP=$(curl ifconfig.me)
 We'll create an inbound rule for Postgres (5432) and provide the GITPOD ID.
 
 We'll get the security group rule id so we can easily modify it in the future from the terminal here in Gitpod.
+
 Create the ENV VAR for the Security group and the Security group rule
 
 ```sh
-export DB_SG_ID="sg-0b725ebab7e25635e"
-gp env DB_SG_ID="sg-0b725ebab7e25635e"
-export DB_SG_RULE_ID="sgr-070061bba156cfa88"
-gp env DB_SG_RULE_ID="sgr-070061bba156cfa88"
+export DB_SG_ID="sg-0de499e3ff47878c2"
+gp env DB_SG_ID="sg-0de499e3ff47878c2"
+
+export DB_SG_RULE_ID="sgr-0c149b46f0242a07f"
+gp env DB_SG_RULE_ID="sgr-0c149b46f0242a07f"
 ```
 Since the ip address changes everytime, you need to change the ip on the security group of the RDS instance.
 Here is the script to add to the file rds-update-sg-rule under bin
@@ -473,10 +475,25 @@ Whenever we need to update our security groups we can do this for access.
 ```sh
 aws ec2 modify-security-group-rules \
     --group-id $DB_SG_ID \
-    --security-group-rules "SecurityGroupRuleId=$DB_SG_RULE_ID,SecurityGroupRule={IpProtocol=tcp,FromPort=5432,ToPort=5432,CidrIpv4=$GITPOD_IP/32}"
+    --security-group-rules "SecurityGroupRuleId=$DB_SG_RULE_ID,SecurityGroupRule={Description=GITPOD,IpProtocol=tcp,FromPort=5432,ToPort=5432,CidrIpv4=$GITPOD_IP/32}"
+
+[AWS CLI Security Group Modify Rules](https://docs.aws.amazon.com/cli/latest/reference/ec2/modify-security-group-rules.html#examples)
+
+**We want this to take effect everytime we start up Gitpod.**
+Create a new file `rds-update-sg-rule` in `bin` directory and paste the below code.
+```sh
+aws ec2 modify-security-group-rules \
+    --group-id $DB_SG_ID \
+    --security-group-rules "SecurityGroupRuleId=$DB_SG_RULE_ID,SecurityGroupRule={Description=GITPOD,IpProtocol=tcp,FromPort=5432,ToPort=5432,CidrIpv4=$GITPOD_IP/32}"
 ```
-
-[AWS CLI Security Group Modify Rules]([https://docs.aws.amazon.com/cli/latest/reference/ec2/modify-security-group-rules.html#examples)
-
-
-
+#### Change permission
+```sh
+chmod 744 bin/rds-update-sg-rule
+```
+#### Update Gitpod.yml
+Paste the below code into `gitpod.yml` so it automatically exports the Ip addr and executes the script.
+```yml
+  command: |
+      export GITPOD_IP=$(curl ifconfig.me)
+      source  "$THEIA_WORKSPACE_ROOT/backend-flask/bin/rds-update-sg-rule"
+ ```
