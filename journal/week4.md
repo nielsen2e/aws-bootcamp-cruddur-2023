@@ -297,4 +297,60 @@ VALUES
     current_timestamp + interval '10 day'
   )
   ```
-  
+ ### Let's see other available connections
+ Create a new file in `bin` called `db-sessions`
+ ```sh
+ #! /usr/bin/bash
+
+CYAN='\033[1;36m'
+NO_COLOR='\033[0m'
+LABEL="db-sessions"
+printf "${CYAN}== ${LABEL}${NO_COLOR}\n"
+
+if [ "$1" = "prod" ]; then
+  echo "Running in production mode"
+  URL=$PROD_CONNECTION_URL
+else
+  URL=$CONNECTION_URL
+fi
+
+NO_DB_URL=$(sed 's/\/cruddur//g' <<<"$URL")
+psql $NO_DB_URL -c "select pid as process_id, \
+       usename as user,  \
+       datname as db, \
+       client_addr, \
+       application_name as app,\
+       state \
+from pg_stat_activity;"
+```
+#### Change permission
+```sh
+chmod 744 bin/db-sessions
+```
+> We could have idle connections left open by our Database Explorer extension, try disconnecting and checking again the sessions.
+
+### Easily setup (reset) everything for DB
+This scrript enables us to easily run our command from one script instead of multiple commands using the terminal.
+
+Create a new file called `db-setup` in `bin` folder
+```sh
+#! /usr/bin/bash
+-e # stop if it fails at any point
+
+CYAN='\033[1;36m'
+NO_COLOR='\033[0m'
+LABEL="db-setup"
+printf "${CYAN}== ${LABEL}${NO_COLOR}\n"
+
+
+bin_path="$(realpath .)/bin"
+
+source "$bin_path/db-drop"
+source "$bin_path/db-create"
+source "$bin_path/db-schema-load"
+source "$bin_path/db-seed"
+```
+#### Change permission
+```sh
+chmod 744 bin/db-setup
+```
