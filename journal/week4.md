@@ -497,3 +497,10 @@ Paste the below code into `gitpod.yml` so it automatically exports the Ip addr a
       export GITPOD_IP=$(curl ifconfig.me)
       source  "$THEIA_WORKSPACE_ROOT/backend-flask/bin/rds-update-sg-rule"
  ```
+ 
+ We have to load data into our production database.
+ 
+ Go to `docker-compose.yml` and add ENV VAR to connect to prod. database
+ ```sh
+ CONNECTION_URL: "${PROD_CONNECTION_URL}"
+ ```
