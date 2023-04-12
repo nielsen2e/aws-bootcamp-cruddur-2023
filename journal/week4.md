@@ -470,16 +470,19 @@ export DB_SG_RULE_ID="sgr-0c149b46f0242a07f"
 gp env DB_SG_RULE_ID="sgr-0c149b46f0242a07f"
 ```
 Since the ip address changes everytime, you need to change the ip on the security group of the RDS instance.
-Here is the script to add to the file rds-update-sg-rule under bin
+
+Here is the script to add to the file rds-update-sg-rule under bin.
 Whenever we need to update our security groups we can do this for access.
 ```sh
 aws ec2 modify-security-group-rules \
     --group-id $DB_SG_ID \
     --security-group-rules "SecurityGroupRuleId=$DB_SG_RULE_ID,SecurityGroupRule={Description=GITPOD,IpProtocol=tcp,FromPort=5432,ToPort=5432,CidrIpv4=$GITPOD_IP/32}"
+```
 
 [AWS CLI Security Group Modify Rules](https://docs.aws.amazon.com/cli/latest/reference/ec2/modify-security-group-rules.html#examples)
 
 **We want this to take effect everytime we start up Gitpod.**
+
 Create a new file `rds-update-sg-rule` in `bin` directory and paste the below code.
 ```sh
 aws ec2 modify-security-group-rules \
@@ -501,7 +504,7 @@ Paste the below code into `gitpod.yml` so it automatically exports the Ip addr a
  We have to load data into our production database.
  
  Go to `docker-compose.yml` and add ENV VAR to connect to prod. database
- ```sh
+ ```yml
  CONNECTION_URL: "${PROD_CONNECTION_URL}"
  ```
  
@@ -516,7 +519,8 @@ Paste the below code into `gitpod.yml` so it automatically exports the Ip addr a
 
 The function
 
-```import json
+```py
+import json
 import psycopg2
 
 def lambda_handler(event, context):
