@@ -504,3 +504,82 @@ Paste the below code into `gitpod.yml` so it automatically exports the Ip addr a
  ```sh
  CONNECTION_URL: "${PROD_CONNECTION_URL}"
  ```
+ 
+ ### Implement Custom Authorizer for Cognito
+ We need to have a `user` for activities and a `cognito_user_id`
+ 
+ ### Setup Cognito post confirmation lambda
+ ### Create the handler function
+
+- Create a lambda function called `cruddur-post-confirmation` in same vpc as rds instance Python 3.8
+- Create a new file in `aws/lambda` called `cruddur-post-confirmation.py`
+
+The function
+
+```import json
+import psycopg2
+
+def lambda_handler(event, context):
+    user = event['request']['userAttributes']
+    print('userAttributes')
+    print(user)
+    user_display_name = user['name']
+    user_email        = user['email']
+    user_handle       = user['preferred_username']
+    user_cognito_id   = user['sub']
+    try:
+        conn = psycopg2.connect(os.getenv('CONNECTION_URL'))
+        cur = conn.cursor()
+        sql = f"""
+            "INSERT INTO users (
+                display_name,
+                email,
+                handle,
+                cognito_user_id
+            ) 
+            VALUES(
+                {user_display_name},
+                {user_email},
+                {user_handle},
+                {user_cognito_id}
+            )"
+        """            
+        cur.execute(sql)
+        conn.commit() 
+
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+    finally:
+        if conn is not None:
+            cur.close()
+            conn.close()
+            print('Database connection closed.')
+
+    return event
+```
+- **Paste the function in the lambda console.**
+- In the Lambda console, go to `Configuration/Environment variables` and set env vars.
+**NB:The env var is the `CONNECTION_URL` for PROD which was set in Gitpod.**
+
+### Create Layer
+- Create the layer>add layers.
+- Select specify arn
+```sh
+arn:aws:lambda:us-east-1:898466741470:layer:psycopg2-py38:2
+```
+Add layer.
+
+### Add Trigger
+- Go to Cognito
+- Select the user pool and go to User pool properties.
+- Add lambda trigger.
+- Set other configurations using the pictures below.
+
+### Test Trigger
+- Go and sign up in your application
+
+Make sure to attach the following policy **AWSLambdaVPCAccessExecutionRole** to the lambda role by going to configuration>permission> link under the Role name.
+
+Once attached the policy, go to VPC and select the VPC where resides the RDS,
+the subnet mask (i suggest selecting just 1 as you could have timeout error during the execution of the lambda) and select the same security group of the rds. In my case i took the default vpc for my region as i deployed there, the subnetmask in my case eu-west-2a (make sure to verify where reside your rds by going to EC2>Network Interface under network & security)
+and security group please make sure to insert the new inbound rule
