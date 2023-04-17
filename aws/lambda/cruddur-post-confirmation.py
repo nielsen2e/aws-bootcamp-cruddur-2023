@@ -43,13 +43,3 @@ def lambda_handler(event, context):
           conn.close()
           print('Database connection closed.')
     return event
-
-
-
-
-
-
-
-
-
-
