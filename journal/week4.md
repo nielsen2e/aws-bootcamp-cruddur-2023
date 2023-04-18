@@ -1,7 +1,7 @@
 # Week 4 — Postgres and RDS
 
 ## Business Use Case
-Create Amazon RDS Postgress for deveopers to use fot the Cruddur web application in AWS.
+Create Amazon RDS Postgress for developers to use for the Cruddur web application in AWS.
 
 ## Amazon RDS
 Amazon RDS (Relational Database Service) is a cloud-based database service provided by Amazon Web Services (AWS). It allows users to create and manage relational databases in the cloud using various database engines, including MySQL, PostgreSQL, Oracle, SQL Server, and MariaDB.
