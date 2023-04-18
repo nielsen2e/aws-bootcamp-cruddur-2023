@@ -519,46 +519,50 @@ Paste the below code into `gitpod.yml` so it automatically exports the Ip addr a
 
 The function
 
-```py
-import json
+```import json
 import psycopg2
+import os
 
 def lambda_handler(event, context):
     user = event['request']['userAttributes']
     print('userAttributes')
     print(user)
-    user_display_name = user['name']
-    user_email        = user['email']
-    user_handle       = user['preferred_username']
-    user_cognito_id   = user['sub']
+
+    user_display_name  = user['name']
+    user_email         = user['email']
+    user_handle        = user['preferred_username']
+    user_cognito_id    = user['sub']
     try:
-        conn = psycopg2.connect(os.getenv('CONNECTION_URL'))
-        cur = conn.cursor()
-        sql = f"""
-            "INSERT INTO users (
-                display_name,
-                email,
-                handle,
-                cognito_user_id
-            ) 
-            VALUES(
-                {user_display_name},
-                {user_email},
-                {user_handle},
-                {user_cognito_id}
-            )"
-        """            
-        cur.execute(sql)
-        conn.commit() 
+      print('entered-try')
+      sql = f"""
+         INSERT INTO public.users (
+          display_name, 
+          email,
+          handle, 
+          cognito_user_id
+          ) 
+        VALUES(%s,%s,%s,%s)
+      """
+      print('SQL Statement ----')
+      print(sql)
+      conn = psycopg2.connect(os.getenv('CONNECTION_URL'))
+      cur = conn.cursor()
+      params = [
+        user_display_name,
+        user_email,
+        user_handle,
+        user_cognito_id
+      ]
+      cur.execute(sql,params)
+      conn.commit() 
 
     except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
+      print(error)
     finally:
-        if conn is not None:
-            cur.close()
-            conn.close()
-            print('Database connection closed.')
-
+      if conn is not None:
+          cur.close()
+          conn.close()
+          print('Database connection closed.')
     return event
 ```
 - **Paste the function in the lambda console.**
@@ -579,11 +583,202 @@ Add layer.
 - Add lambda trigger.
 - Set other configurations using the pictures below.
 
+![lambda1](https://github.com/nielsen2e/aws-bootcamp-cruddur-2023/blob/main/journal/assets/lambda%201.png)
+![lambda2](https://github.com/nielsen2e/aws-bootcamp-cruddur-2023/blob/main/journal/assets/lambda%202.png)
+![lambda3](https://github.com/nielsen2e/aws-bootcamp-cruddur-2023/blob/main/journal/assets/lambda%203.png)
+
 ### Test Trigger
 - Go and sign up in your application
 
-Make sure to attach the following policy **AWSLambdaVPCAccessExecutionRole** to the lambda role by going to configuration>permission> link under the Role name.
+`PostConfirmation failed with error local variable 'conn' referenced before assignment.`
+An error about lambda.
 
-Once attached the policy, go to VPC and select the VPC where resides the RDS,
-the subnet mask (i suggest selecting just 1 as you could have timeout error during the execution of the lambda) and select the same security group of the rds. In my case i took the default vpc for my region as i deployed there, the subnetmask in my case eu-west-2a (make sure to verify where reside your rds by going to EC2>Network Interface under network & security)
-and security group please make sure to insert the new inbound rule
+### Go and check Cloud watch logs.
+
+We saw that os was not defined so we imported it in the lambda function and deployed the new changes from the console.
+
+We went to resend activitation code and we found a new error:
+
+`User cannot be confirmed. Current status is CONFIRMED`
+
+Now we have to delete our previously created user and sign up again.
+
+`PostConfirmation failed with error 2023-04-17T10:49:50.847Z ed6e28d3-33fe-47a2-b556-eedee72bd9be Task timed out after 3.00 seconds.`
+
+We have a new error.
+
+This means its trying to connect to the postgress db and its running into issues.
+
+We have a connection issue and after checking, the rds instance and lambda function have to be in the same vpc.
+
+To connect to a vpc, go to Lambda configuration, click edit, pick default vpc
+choose a subnet, make sure its the same subnet the rds instance is in.
+put it in the default vpc security group.
+
+When trying to save, there was a new error
+`The provided execution role does not have permissions to call CreateNetworkInterface on EC2`
+
+We need to set some permissions to enable the vpc give acces to the lambda function.
+
+Go to configuration>permissions>click execution role>click add permissions>search for AWSLambdaVPCAccessExecutionRole
+
+Add permissions.
+
+After doing this, edit the vpc again.
+
+The lambda function was triggered.
+
+Connect to your rds database and check if the users were added.
+
+![users](https://github.com/nielsen2e/aws-bootcamp-cruddur-2023/blob/main/journal/assets/Screenshot_20230417_125400.png)
+
+The users were not added.
+
+Check cloudwatch logs.
+
+We have an error.
+
+![cloudwatch](https://github.com/nielsen2e/aws-bootcamp-cruddur-2023/blob/main/journal/assets/Screenshot_20230417_125456.png)
+
+**NB: Use the above edited lambda function to clear the error**
+
+#### Create activities
+Create new files `object.sql` and `create.sql` and `home.sql` in the `db/sql/activities`
+
+In `object.sql`
+```sql
+SELECT
+  activities.uuid,
+  users.display_name,
+  users.handle,
+  activities.message,
+  activities.created_at,
+  activities.expires_at
+FROM public.activities
+INNER JOIN public.users ON users.uuid = activities.user_uuid 
+WHERE 
+  activities.uuid = %(uuid)s
+```
+
+In `create.sql`
+```sql
+INSERT INTO public.activities (
+  user_uuid,
+  message,
+  expires_at
+)
+VALUES (
+  (SELECT uuid 
+    FROM public.users 
+    WHERE users.handle = %(handle)s
+    LIMIT 1
+  ),
+  %(message)s,
+  %(expires_at)s
+) RETURNING uuid;
+```
+In `home.sql`
+```sql
+SELECT
+  activities.uuid,
+  users.display_name,
+  users.handle,
+  activities.message,
+  activities.replies_count,
+  activities.reposts_count,
+  activities.likes_count,
+  activities.reply_to_activity_uuid,
+  activities.expires_at,
+  activities.created_at
+FROM public.activities
+LEFT JOIN public.users ON users.uuid = activities.user_uuid
+ORDER BY activities.created_at DESC
+```
+
+Paste the folowwing code in `home_activities.py`
+```py
+from datetime import datetime, timedelta, timezone
+from opentelemetry import trace
+
+from lib.db import db
+
+#tracer = trace.get_tracer("home.activities")
+
+class HomeActivities:
+  def run(cognito_user_id=None):
+    #logger.info("HomeActivities")
+    #with tracer.start_as_current_span("home-activites-mock-data"):
+    #  span = trace.get_current_span()
+    #  now = datetime.now(timezone.utc).astimezone()
+    #  span.set_attribute("app.now", now.isoformat())
+    sql = db.template('activities','home')
+    results = db.query_array_json(sql)
+    return results
+```
+In `create_activity.py`
+```py
+from datetime import datetime, timedelta, timezone
+
+from lib.db import db
+
+class CreateActivity:
+  def run(message, user_handle, ttl):
+    model = {
+      'errors': None,
+      'data': None
+    }
+
+    now = datetime.now(timezone.utc).astimezone()
+
+    if (ttl == '30-days'):
+      ttl_offset = timedelta(days=30) 
+    elif (ttl == '7-days'):
+      ttl_offset = timedelta(days=7) 
+    elif (ttl == '3-days'):
+      ttl_offset = timedelta(days=3) 
+    elif (ttl == '1-day'):
+      ttl_offset = timedelta(days=1) 
+    elif (ttl == '12-hours'):
+      ttl_offset = timedelta(hours=12) 
+    elif (ttl == '3-hours'):
+      ttl_offset = timedelta(hours=3) 
+    elif (ttl == '1-hour'):
+      ttl_offset = timedelta(hours=1) 
+    else:
+      model['errors'] = ['ttl_blank']
+
+    if user_handle == None or len(user_handle) < 1:
+      model['errors'] = ['user_handle_blank']
+
+    if message == None or len(message) < 1:
+      model['errors'] = ['message_blank'] 
+    elif len(message) > 280:
+      model['errors'] = ['message_exceed_max_chars'] 
+
+    if model['errors']:
+      model['data'] = {
+        'handle':  user_handle,
+        'message': message
+      }   
+    else:
+      expires_at = (now + ttl_offset)
+      uuid = CreateActivity.create_activity(user_handle,message,expires_at)
+
+      object_json = CreateActivity.query_object_activity(uuid)
+      model['data'] = object_json
+    return model
+
+  def create_activity(handle, message, expires_at):
+    sql = db.template('activities','create')
+    uuid = db.query_commit(sql,{
+      'handle': handle,
+      'message': message,
+      'expires_at': expires_at
+    })
+    return uuid
+  def query_object_activity(uuid):
+    sql = db.template('activities','object')
+    return db.query_object_json(sql,{
+      'uuid': uuid
+    })
+```
