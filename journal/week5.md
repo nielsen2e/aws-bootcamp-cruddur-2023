@@ -29,3 +29,49 @@ prevent unauthorized access to your instance from the public internet.
 5. Not have DynamoDB be accessed from the internet (use VPC Endpoints etc).
 6. Site to Site VPN or direct Connect for Onpremise and DynamoDB Access.
 7. Client side encryption is recommended by Amazon for DynamoDB.
+
+## DynamoDB Pricing
+DynamoDB charges for `reading, writing, and storing data in your DynamoDB tables`, along with any optional features you choose to enable. DynamoDB has two capacity modes, which come with specific billing options for processing reads and writes on your tables: on-demand and provisioned.
+
+There are two pricing options available for Amazon DynamoDB: `on-demand capacity mode` and `provisioned capacity mode`. With two pricing models, DynamoDB allows you to choose the best pricing option for your workload.
+
+## Pricing for on-demand capacity mode
+
+With on-demand capacity mode, DynamoDB charges you for the data reads and writes your application performs on your tables. You can get started without specifying read or write capacity as DynamoDB will instantly adjust based on your workloads’ requirements
+
+`On-demand capacity mode` might be best if you:
+
+- Create new tables with unknown workloads
+- Have unpredictable application traffic
+- Prefer the ease of paying for only what you use
+
+## Pricing for provisioned capacity mode
+With provisioned capacity mode, you specify the number of reads and writes per second that you expect your application to require. You can use auto scaling to automatically adjust your table’s capacity based on the specified utilization rate to ensure application performance while reducing costs.
+
+`Provisioned capacity mode` might be best if you:
+
+- Have predictable application traffic
+- Run applications whose traffic is consistent or ramps gradually
+- Can forecast capacity requirements to control costs
+
+## DynamoDB Pricing Figures
+
+### Free Forever Tier
+- 25 GB of Storage
+- 25 provisioned Write Capacity Units (WCU)
+- 25 provisioned Read Capacity Units (RCU)
+- Enough to handle up to 200M requests per month.
+
+
+## Momento Pricing
+
+### Free Tier
+- First 50GB transferred to/from Momento per month Beyond Free Tier
+- $0.15 per GB
+
+[Momento Pricing](https://www.gomomento.com/pricing)
+
+
+
+
+
