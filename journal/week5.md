@@ -72,7 +72,7 @@ With provisioned capacity mode, you specify the number of reads and writes per s
 [Momento Pricing](https://www.gomomento.com/pricing)
 
 
-## # Data Modelling
+## Data Modelling
 For the messaging part, we will implement a single table data modelling using Dynamo DB. Below you will see the pattern for CRUDDUR
 
 1. **Pattern A**: Shows the messages. Users can see the list of the messages that belong to a message group.
