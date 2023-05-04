@@ -160,6 +160,8 @@ WHERE
 
 ![Modelling](https://github.com/nielsen2e/aws-bootcamp-cruddur-2023/blob/main/journal/assets/Modelling.png)
 
+**NB:** Add **boto3** into **backend-flask/requirements.txt**, which is the AWS SDK for Python to create, configure, and manage AWS services such as DynamoDB.
+
 ## Re-arrange Folder Scripts
 We are going to re-arrange the folder scripts to make it more presentable.
 
@@ -186,3 +188,129 @@ Go to the `backend-flask/bin/ddb/schema-load \` directory to create an executabl
 #!/usr/bin/env python3
 ```
 > This shebang enables you to find libraries
+
+Add the below code to the `schema-load` file
+```py
+#!/usr/bin/env python3
+
+import boto3
+import sys
+
+attrs = {
+    'endpoint_url':'http://localhost:8000'
+}
+
+if len(sys.argv) == 2:
+    if "prod" in sys.argv[1]:
+        attrs={}
+
+ddb = boto3.client('dynamodb',**attrs)
+
+table_name = 'cruddur-messages'
+
+response = ddb.create_table(
+    TableName=table_name,
+    AttributeDefinitions=[
+        {
+            'AttributeName': 'message_group_uuid',
+            'AttributeType': 'S'
+        },
+        {
+            'AttributeName': 'pk',
+            'AttributeType': 'S'
+        },
+        {
+            'AttributeName': 'sk',
+            'AttributeType': 'S'
+        },
+    ],
+    KeySchema=[
+        {
+            'AttributeName': 'pk',
+            'KeyType': 'HASH'
+        },
+          {
+            'AttributeName': 'sk',
+            'KeyType': 'RANGE'
+        },
+    ],
+    GlobalSecondaryIndexes=[{
+    'IndexName':'message-group-sk-index',
+    'KeySchema':[{
+      'AttributeName': 'message_group_uuid',
+      'KeyType': 'HASH'
+    },{
+      'AttributeName': 'sk',
+      'KeyType': 'RANGE'
+    }],
+    'Projection': {
+      'ProjectionType': 'ALL'
+    },
+    'ProvisionedThroughput': {
+      'ReadCapacityUnits': 5,
+      'WriteCapacityUnits': 5
+    },
+    }],
+    BillingMode='PROVISIONED',
+    ProvisionedThroughput={
+        'ReadCapacityUnits': 5,
+        'WriteCapacityUnits': 5
+    },
+    Tags=[
+        {
+            'Key': 'PROJECT',
+            'Value': 'CRUDDER'
+        },
+    ],
+)
+print(response)
+```
+
+Make the file executable `chmod u+x bin/ddb/schema-load`
+
+[Dynamodb Table Documentation](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb/client/create_table.html)
+
+### Lets list the tables using AWS CLI and create a `list-table` utility script.
+```sh
+#!/usr/bin/bash
+
+set -e # stop if it fails at any point
+if [ "$1" = "prod" ]; then
+    ENDPOINT_URL="https://dynamodb.us-east-1.amazonaws.com"
+else
+    ENDPOINT_URL="--endpoint-url=http://localhost:8000"
+fi
+
+aws dynamodb list-tables $ENDPOINT_URL \
+--query TableNames \
+--output table
+```
+Make it executable `chmod u+x bin/ddb/list-tables`
+
+[list-tables](https://docs.aws.amazon.com/cli/latest/reference/dynamodb/list-tables.html)
+
+### Drop tables
+In the `drop` file
+```sh
+#!/usr/bin/bash
+
+set -e # stop if it fails at any point
+if [ -z "$1" ]; then
+    echo "No TABLE_NAME argument supplied eg ./bin/ddb/drop cruddur-messages prod"
+    exit 1
+fi
+TABLE_NAME=$1
+
+if [ "$2" = "prod" ]; then
+    ENDPOINT_URL=""
+else
+    ENDPOINT_URL="--endpoint-url=http://localhost:8000"
+fi
+
+echo "Deleting table: $TABLE_NAME"
+aws dynamodb delete-table $ENDPOINT_URL \
+--table-name $TABLE_NAME
+```
+Make it executable `chmod u+x bin/ddb/drop`
+
+### Seed data
