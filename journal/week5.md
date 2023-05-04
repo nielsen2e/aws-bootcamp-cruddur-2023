@@ -158,7 +158,7 @@ WHERE
   AND message_groups.user_uuid = {{user_uuid}}
 ```
 
-![Pattern](https://github.com/dontworryjohn/aws-bootcamp-cruddur-2023/blob/main/images/message%20pattern.jpeg)
+![Modelling](https://github.com/nielsen2e/aws-bootcamp-cruddur-2023/blob/main/journal/assets/Modelling.png)
 
 
 
