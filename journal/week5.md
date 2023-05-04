@@ -80,7 +80,7 @@ For the messaging part, we will implement a single table data modelling using Dy
 3. **Pattern C**: Create a new message in a new message group.
 4. **Pattern D**: Create a new message in an exisintg group.
 
-## Pattern A (showing a single conversation)
+### Pattern A (showing a single conversation)
 
 A user wants to see a list of messages that belong to a message group
 The messages must be ordered by the created_at timestamp from newest to oldest (DESC)
@@ -100,7 +100,7 @@ ORDER BY messages.created_at DESC
 
 > message_group_uuid comes from Pattern B
 
-## Pattern B (list of conversation)
+### Pattern B (list of conversation)
 
 A user wants to see a list of previous conversations.
 These conversations are listed from newest to oldest (DESC)
@@ -123,7 +123,7 @@ ORDER BY message_groups.last_message_at DESC
 
 > We need a Global Secondary Index (GSI)
 
-## Pattern C (create a message)
+### Pattern C (create a message)
 
 ```sql
 INSERT INTO messages (
@@ -140,7 +140,7 @@ VALUES (
 );
 ```
 
-## Pattern D (update a message_group for the last message)
+### Pattern D (update a message_group for the last message)
 
 When a user creates a message we need to update the conversation
 to display the last message information for the conversation
@@ -160,5 +160,29 @@ WHERE
 
 ![Modelling](https://github.com/nielsen2e/aws-bootcamp-cruddur-2023/blob/main/journal/assets/Modelling.png)
 
+## Re-arrange Folder Scripts
+We are going to re-arrange the folder scripts to make it more presentable.
 
+For each bash script, the folder will be the re-named:
+```yml
+backend-flask/bin/db-connect → backend-flask/bin/db/connect
+backend-flask/bin/db-create → backend-flask/bin/db/create
+backend-flask/bin/db-drop → backend-flask/bin/db/drop
+backend-flask/bin/db-schema-load → backend-flask/bin/db/schema-load
+backend-flask/bin/db-seed → backend-flask/bin/db/seed
+backend-flask/bin/db-sessions → backend-flask/bin/db/sessions
+backend-flask/bin/db-setup → backend-flask/bin/db/setup
+backend-flask/bin/rds-update-sg-rule → backend-flask/bin/rds/update-sg-rule
+```
 
+**NB:** In DynamoDB, we create tables not databases and we drop tables and vice versa.
+
+## Create a Table in DynamoDB
+We are using the AWS SDK
+
+Go to the `backend-flask/bin/ddb/schema-load \` directory to create an executable python file.
+
+```yml
+#!/usr/bin/env python3
+```
+> This shebang enables you to find libraries
