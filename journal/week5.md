@@ -583,3 +583,303 @@ Make it executable `chmod u+x bin/ddb/scan`
 
 ### Query the data 
 Create a new folder called `patterns` and files called `list-conversations` and `get-conversations`
+`list-conversations`
+```py
+#!/usr/bin/env python3
+
+import boto3
+import sys
+import json
+import os
+import datetime
+
+current_path = os.path.dirname(os.path.abspath(__file__))
+parent_path = os.path.abspath(os.path.join(current_path, '..', '..', '..'))
+sys.path.append(parent_path)
+from lib.db import db
+attrs = {
+  'endpoint_url': 'http://localhost:8000'
+}
+
+if len(sys.argv) == 2:
+  if "prod" in sys.argv[1]:
+    attrs = {}
+
+dynamodb = boto3.client('dynamodb',**attrs)
+table_name = 'cruddur-messages'
+
+def get_my_user_uuids():
+  sql = """
+    SELECT 
+      users.uuid
+    FROM users
+    WHERE
+      users.handle =%(handle)s
+  """
+  uuid = db.query_value(sql,{
+    'handle':  'andrewbrown'
+  })
+  return uuid
+
+myuser_uuid = get_my_user_uuids()
+print(f"my-uuid: {myuser_uuid}")
+year = str(datetime.datetime.now().year)
+
+# define the query parameters
+query_params = {
+  'TableName': table_name,
+  'KeyConditionExpression': 'pk = :pk AND begins_with (sk,:year)',
+  'ScanIndexForward': False,
+  'ExpressionAttributeValues': {
+    ':year': {'S': year },
+    ':pk': {'S': f"GRP#{myuser_uuid}"}
+  },
+  'ReturnConsumedCapacity': 'TOTAL'
+}
+
+# query the table
+response = dynamodb.query(**query_params)
+
+# print the items returned by the query
+print(json.dumps(response, sort_keys=True, indent=2))
+```
+`get-conversations`
+```py
+#!/usr/bin/env python3
+
+import boto3
+import sys
+import json
+import datetime
+
+attrs = {
+  'endpoint_url': 'http://localhost:8000'
+}
+
+if len(sys.argv) == 2:
+  if "prod" in sys.argv[1]:
+    attrs = {}
+
+dynamodb = boto3.client('dynamodb',**attrs)
+table_name = 'cruddur-messages'
+
+message_group_uuid = "5ae290ed-55d1-47a0-bc6d-fe2bc2700399"
+
+# define the query parameters
+current_year = datetime.datetime.now().year
+query_params = {
+  'TableName': table_name,
+  'ScanIndexForward': False,
+  'Limit': 20,
+  'ReturnConsumedCapacity': 'TOTAL',
+  'KeyConditionExpression': 'pk = :pk AND begins_with(sk,:year)',
+  #'KeyConditionExpression': 'pk = :pk AND sk BETWEEN :start_date AND :end_date',
+  'ExpressionAttributeValues': {
+    ':year': {'S': '2023'},
+    #":start_date": { "S": "2023-03-01T00:00:00.000000+00:00" },
+    #":end_date": { "S": "2023-03-19T23:59:59.999999+00:00" },
+    ':pk': {'S': f"MSG#{message_group_uuid}"}
+  }
+}
+
+# query the table
+response = dynamodb.query(**query_params)
+
+# print the items returned by the query
+print(json.dumps(response, sort_keys=True, indent=2))
+
+# print the consumed capacity
+print(json.dumps(response['ConsumedCapacity'], sort_keys=True, indent=2))
+
+items = response['Items']
+items.reverse()
+
+for item in items:
+  sender_handle = item['user_handle']['S']
+  message       = item['message']['S']
+  timestamp     = item['sk']['S']
+  dt_object = datetime.datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%f')
+  formatted_datetime = dt_object.strftime('%Y-%m-%d %I:%M %p')
+  print(f'{sender_handle: <16}{formatted_datetime: <22}{message[:40]}...')
+  ```
+
+  ## Implementation of Messages with the local Dynamodb
+
+  Create a new library called `backend-flask/lib/ddb.py` like we created `db.py` for the postgres db.
+
+  To prevent using had code values, we will use the sub which is our cognito User ID.
+
+  Lets generate a script to generate our cognito User ID instead of hard coding the value directly from AWS Console.
+
+### List users from Cognito user pool
+  Create a folder called `congnito/list-users` in `bin` directory
+  ```py
+  #!/usr/bin/env python3
+
+import boto3
+import os
+import json
+
+userpool_id = os.getenv("AWS_USER_POOLS_ID")
+client = boto3.client('cognito-idp')
+params = {
+  'UserPoolId': userpool_id,
+  'AttributesToGet': [
+      'preferred_username',
+      'sub'
+  ]
+}
+response = client.list_users(**params)
+users = response['Users']
+
+print(json.dumps(users, sort_keys=True, indent=2, default=str))
+
+dict_users = {}
+for user in users:
+  attrs = user['Attributes']
+  sub    = next((a for a in attrs if a["Name"] == 'sub'), None)
+  handle = next((a for a in attrs if a["Name"] == 'preferred_username'), None)
+  dict_users[handle['Value']] = sub['Value']
+
+print(json.dumps(dict_users, sort_keys=True, indent=2, default=str))
+```
+This script is gotten from boto3 AWS SDK
+
+[list-users documentation](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/cognito-idp/client/list_users.html)
+
+**NB:** Make it executable
+
+## Create a script to update User ID in database
+Create a new file in `backend-flask/bin/db` called `update_cognito_user_ids`
+```py
+#!/usr/bin/env python3
+
+import boto3
+import os
+import sys
+
+print("== db-update-cognito-user-ids")
+
+current_path = os.path.dirname(os.path.abspath(__file__))
+parent_path = os.path.abspath(os.path.join(current_path, '..', '..'))
+sys.path.append(parent_path)
+from lib.db import db
+
+def update_users_with_cognito_user_id(handle,sub):
+  sql = """
+    UPDATE public.users
+    SET cognito_user_id = %(sub)s
+    WHERE
+      users.handle = %(handle)s;
+  """
+  db.query_commit(sql,{
+    'handle' : handle,
+    'sub' : sub
+  })
+
+def get_cognito_user_ids():
+  userpool_id = os.getenv("AWS_USER_POOLS_ID")
+  client = boto3.client('cognito-idp')
+  params = {
+    'UserPoolId': userpool_id,
+    'AttributesToGet': [
+        'preferred_username',
+        'sub'
+    ]
+  }
+  response = client.list_users(**params)
+  users = response['Users']
+  dict_users = {}
+  for user in users:
+    attrs = user['Attributes']
+    sub    = next((a for a in attrs if a["Name"] == 'sub'), None)
+    handle = next((a for a in attrs if a["Name"] == 'preferred_username'), None)
+    dict_users[handle['Value']] = sub['Value']
+  return dict_users
+
+
+users = get_cognito_user_ids()
+
+for handle, sub in users.items():
+  print('----',handle,sub)
+  update_users_with_cognito_user_id(
+    handle=handle,
+    sub=sub
+  )
+  ```
+  Make it executable
+
+**NB**: Inside the file **backend-flask/bin/db/setup**, add the following code 
+```py
+python "$bin_path/db/update_cognito_user_ids"
+```
+### Update app.py
+Copy the below code from `app.py`
+```py
+access_token = extract_access_token(request.headers)
+  try:
+    claims = cognito_jwt_token.verify(access_token)
+    # authenicatied request
+    app.logger.debug("authenicated")
+    app.logger.debug(claims)
+    app.logger.debug(claims['username'])
+    data = HomeActivities.run(cognito_user_id=claims['username'])
+  except TokenVerifyError as e:
+    # unauthenicatied request
+    app.logger.debug(e)
+    app.logger.debug("unauthenicated")
+    data = HomeActivities.run()
+```
+    **TO under these code lines**
+    **NB:** The code has been edited.
+```
+    @app.route("/api/message_groups", methods=['GET'])
+    def data_message_groups():
+      access_token = extract_access_token(request.headers)
+  try:
+    claims = cognito_jwt_token.verify(access_token)
+    # authenicatied request
+    app.logger.debug("authenicated")
+    app.logger.debug(claims)
+    cognito_user_id = claims['sub']
+    model = MessageGroups.run(cognito_user_id=cognito_user_id)
+    if model['errors'] is not None:
+      return model['errors'], 422
+    else:
+      return model['data'], 200
+  except TokenVerifyError as e:
+    # unauthenicatied request
+    app.logger.debug(e)
+    return {}, 401
+```
+
+Go to `backend-flask/services/message_groups.py` and replace with the following code
+```py
+from datetime import datetime, timedelta, timezone
+
+from lib.ddb import Ddb
+from lib.db import db
+
+class MessageGroups:
+  def run(cognito_user_id):
+    model = {
+      'errors': None,
+      'data': None
+    }
+
+    sql = db.template('users','uuid_from_cognito_user_id')
+    my_user_uuid = db.query_value(sql,{
+      'cognito_user_id': cognito_user_id
+    })
+
+    print(f"UUID: {my_user_uuid}")
+
+    ddb = Ddb.client()
+    data = Ddb.list_message_groups(ddb, my_user_uuid)
+    print("list_message_groups: ",data)
+
+    model['data'] = data
+    return model
+```
+
+Create a new folder and file `backend-flask/db/sql/activities/users/uuid_from_cognito_user_id.sql`
