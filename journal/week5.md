@@ -711,6 +711,8 @@ for item in items:
 
   Lets generate a script to generate our cognito User ID instead of hard coding the value directly from AWS Console.
 
+**NB:** Make sure to create **AWS_ENDPOINT_URL: "http://dynamodb-local:8000"** inside the **docker-compose.yml**.
+
 ### List users from Cognito user pool
   Create a folder called `congnito/list-users` in `bin` directory
   ```py
@@ -881,5 +883,54 @@ class MessageGroups:
     model['data'] = data
     return model
 ```
-
 Create a new folder and file `backend-flask/db/sql/activities/users/uuid_from_cognito_user_id.sql`
+```sql
+SELECT
+  users.uuid
+FROM public.users
+WHERE 
+  users.cognito_user_id = %(cognito_user_id)s
+LIMIT 1
+```
+
+This code will update the cognito user ids in the database instead of manually encoding in the `seed.sql` file.
+
+### Authentication for HomepageFeed.js
+This can also be applied to `MessageGroupPage.js`, `MessageGroupsPage,js`, `MessageForm.js`.
+Create a new file in `frontend-react-js/src/pages/lib/CheckAuth.js` and cut the below code from `HomeFeedPage.js` 
+```js
+ // check if the current user is authenicated
+ import { Auth } from 'aws-amplify';
+ const checkAuth = async (setUser) => {
+    Auth.currentAuthenticatedUser({
+      // Optional, By default is false. 
+      // If set to true, this call will send a 
+      // request to Cognito to get the latest user data
+      bypassCache: false 
+    })
+    .then((user) => {
+      console.log('user',user);
+      return Auth.currentAuthenticatedUser()
+    }).then((cognito_user) => {
+        setUser({
+          display_name: cognito_user.attributes.name,
+          handle: cognito_user.attributes.preferred_username
+        })
+    })
+    .catch((err) => console.log(err));
+  };
+
+  export default checkAuth;
+```
+
+To retrieve messages and message groups from Dynamodb instead of using hard-coded data, modify the backend routes and functions. Rather than passing in a handle, use message_group_uuid. The Ddb class's list_message_groups and list_messages are mainly used for these implementations.
+
+Make the following changes in backend-flask/app.py: replace "/api/messages/@string:handle" with "/api/messages/string:message_group_uuid".
+
+Also, make modifications in the backend-flask/services/message_groups.py and backend-flask/services/messages.py files.
+
+In the frontend-react-js/src/pages/MessageGroupPage.js, update the backend_url to use ${params.message_group_uuid} instead of ${handle}, and in frontend-react-js/src/App.js, change the path from "/messages/@:handle" to "/messages/:message_group_uuid".
+
+In frontend-react-js/src/components/MessageGroupItem.js, change props.message_group.handle to props.message_group.uuid and params.handle to params.message_group_uuid.
+
+For authentication, create a reusable script in frontend-react-js/src/lib/CheckAuth.js, which can be used in frontend-react-js/src/pages/HomeFeedPage.js, frontend-react-js/src/pages/MessageGroupPage.js, frontend-react-js/src/pages/MessageGroupsPage.js, and frontend-react-js/src/components/MessageForm.js.
