@@ -83,18 +83,15 @@ class Db:
         if json == None:
           "{}"
         else:
-          return json[0]
-  
+          return json[0] 
  # when we want to return a a single value
   def query_value(self,sql,params={}):
     self.print_sql('value',sql,params)
-
     with self.pool.connection() as conn:
       with conn.cursor() as cur:
         cur.execute(sql,params)
         json = cur.fetchone()
         return json[0]
-
   def query_wrap_object(self,template):
     sql = f"""
     (SELECT COALESCE(row_to_json(object_row),'{{}}'::json) FROM (

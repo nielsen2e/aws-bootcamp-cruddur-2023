@@ -923,15 +923,17 @@ Create a new file in `frontend-react-js/src/pages/lib/CheckAuth.js` and cut the 
   export default checkAuth;
 ```
 
-To retrieve messages and message groups from Dynamodb instead of using hard-coded data, modify the backend routes and functions. Rather than passing in a handle, use message_group_uuid. The Ddb class's list_message_groups and list_messages are mainly used for these implementations.
+To retrieve messages and message groups from Dynamodb instead of using hard-coded data, modify the backend routes and functions.
 
-Make the following changes in backend-flask/app.py: replace "/api/messages/@string:handle" with "/api/messages/string:message_group_uuid".
+Rather than passing in a handle, use message_group_uuid. The Ddb class's list_message_groups and list_messages are mainly used for these implementations.
 
-Also, make modifications in the backend-flask/services/message_groups.py and backend-flask/services/messages.py files.
+Make the following changes in backend-flask/app.py: replace `"/api/messages/@string:handle" with "/api/messages/string:message_group_uuid"`.
 
-In the frontend-react-js/src/pages/MessageGroupPage.js, update the backend_url to use ${params.message_group_uuid} instead of ${handle}, and in frontend-react-js/src/App.js, change the path from "/messages/@:handle" to "/messages/:message_group_uuid".
+Make modifications in the `backend-flask/services/message_groups.py` and `backend-flask/services/messages.py` files.
 
-In frontend-react-js/src/components/MessageGroupItem.js, change props.message_group.handle to props.message_group.uuid and params.handle to params.message_group_uuid.
+In the `frontend-react-js/src/pages/MessageGroupPage.js`,update the backend_url to use `${params.message_group_uuid}` instead of `${handle}`, and in `frontend-react-js/src/App.js`, change the path from `"/messages/@:handle"` to `"/messages/:message_group_uuid"`.
+
+In `frontend-react-js/src/components/MessageGroupItem.js`, change props.message_group.handle to props.message_group.uuid and params.handle to params.message_group_uuid.
 
 For authentication, create a reusable script in frontend-react-js/src/lib/CheckAuth.js, which can be used in frontend-react-js/src/pages/HomeFeedPage.js, frontend-react-js/src/pages/MessageGroupPage.js, frontend-react-js/src/pages/MessageGroupsPage.js, and frontend-react-js/src/components/MessageForm.js.
 NB:Take files
