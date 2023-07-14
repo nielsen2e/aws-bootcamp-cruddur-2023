@@ -933,7 +933,7 @@ Make modifications in the `backend-flask/services/message_groups.py` and `backen
 
 In the `frontend-react-js/src/pages/MessageGroupPage.js`,update the backend_url to use `${params.message_group_uuid}` instead of `${handle}`, and in `frontend-react-js/src/App.js`, change the path from `"/messages/@:handle"` to `"/messages/:message_group_uuid"`.
 
-In `frontend-react-js/src/components/MessageGroupItem.js`, change props.message_group.handle to props.message_group.uuid and params.handle to params.message_group_uuid.
+In `frontend-react-js/src/components/MessageGroupItem.js`, change `props.message_group.handle` to `props.message_group.uuid` and `params.handle` to `params.message_group_uuid`.
 
 For authentication, create a reusable script in `frontend-react-js/src/lib/CheckAuth.js`, which can be used in `frontend-react-js/src/pages/HomeFeedPage.js`, `frontend-react-js/src/pages/MessageGroupPage.js`, `frontend-react-js/src/pages/MessageGroupsPage.js`, and `frontend-react-js/src/components/MessageForm.js`.
 NB:Take files
