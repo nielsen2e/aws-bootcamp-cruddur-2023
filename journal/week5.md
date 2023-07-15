@@ -937,3 +937,156 @@ In `frontend-react-js/src/components/MessageGroupItem.js`, change `props.message
 
 For authentication, create a reusable script in `frontend-react-js/src/lib/CheckAuth.js`, which can be used in `frontend-react-js/src/pages/HomeFeedPage.js`, `frontend-react-js/src/pages/MessageGroupPage.js`, `frontend-react-js/src/pages/MessageGroupsPage.js`, and `frontend-react-js/src/components/MessageForm.js`.
 NB:Take files
+
+### Implementation DynamoDB Data Stream to update message groups
+Before creating the new DynamoDB table, replace the new code for the script **/bin/ddb/schema-load** and make sure the **AWS_ENDPOINT_URL: "http://dynamodb-local:8000"** from the **docker-compose.yml** is commented.
+
+```py
+#!/usr/bin/env python3
+
+import boto3
+import sys
+
+attrs = {
+    'endpoint_url':'http://localhost:8000'
+}
+
+if len(sys.argv) == 2:
+    if "prod" in sys.argv[1]:
+        attrs={}
+
+ddb = boto3.client('dynamodb',**attrs)
+
+table_name = 'cruddur-messages'
+
+response = ddb.create_table(
+    TableName=table_name,
+    AttributeDefinitions=[
+        {
+            'AttributeName': 'message_group_uuid',
+            'AttributeType': 'S'
+        },
+        {
+            'AttributeName': 'pk',
+            'AttributeType': 'S'
+        },
+        {
+            'AttributeName': 'sk',
+            'AttributeType': 'S'
+        },
+    ],
+    KeySchema=[
+        {
+            'AttributeName': 'pk',
+            'KeyType': 'HASH'
+        },
+          {
+            'AttributeName': 'sk',
+            'KeyType': 'RANGE'
+        },
+    ],
+    GlobalSecondaryIndexes=[{
+    'IndexName':'message-group-sk-index',
+    'KeySchema':[{
+      'AttributeName': 'message_group_uuid',
+      'KeyType': 'HASH'
+    },{
+      'AttributeName': 'sk',
+      'KeyType': 'RANGE'
+    }],
+    'Projection': {
+      'ProjectionType': 'ALL'
+    },
+    'ProvisionedThroughput': {
+      'ReadCapacityUnits': 5,
+      'WriteCapacityUnits': 5
+    },
+    }],
+    BillingMode='PROVISIONED',
+    ProvisionedThroughput={
+        'ReadCapacityUnits': 5,
+        'WriteCapacityUnits': 5
+    },
+    Tags=[
+        {
+            'Key': 'PROJECT',
+            'Value': 'CRUDDER'
+        },
+    ],
+)
+print(response)
+```
+
+Create the table using the script. This will create the dynamodb in your aws account. 
+
+```py
+/bin/ddb/schema-load prod
+```
+Note: If you returns the error **table already exists: cruddur-messages**, that means the table is already created in your account. if you dont see the table, make sure you are in the right region.
+Once created the table, active the **DynamoDB Stream**.
+From the table, go to the tab **Exports and streams**>Section **DynamoDB stream details** click active>Select **New image**
+**
+
+
+The next steps is to create the endpoint.
+To do please follow the instruction in the [link](https://scribehow.com/shared/Amazon_Workflow__9knsACwST_equLV8dYYa9A).
+
+Once you create the endpoint, next to do is to create the lambda fuction.
+
+Use the following code for the lambda function:
+```py
+import json
+import boto3
+from boto3.dynamodb.conditions import Key, Attr
+
+dynamodb = boto3.resource(
+ 'dynamodb',
+ region_name='YOURREGION',
+ endpoint_url="http://dynamodb.YOURREGION.amazonaws.com"
+)
+
+def lambda_handler(event, context):
+  print('event-data',event)
+  eventName = event['Records'][0]['eventName']
+  if (eventName == 'REMOVE'):
+    print("skip REMOVE event")
+    return
+  pk = event['Records'][0]['dynamodb']['Keys']['pk']['S']
+  sk = event['Records'][0]['dynamodb']['Keys']['sk']['S']
+  if pk.startswith('MSG#'):
+    group_uuid = pk.replace("MSG#","")
+    message = event['Records'][0]['dynamodb']['NewImage']['message']['S']
+    print("GRUP ===>",group_uuid,message)
+    
+    table_name = 'cruddur-messages'
+    index_name = 'message-group-sk-index'
+    table = dynamodb.Table(table_name)
+    data = table.query(
+      IndexName=index_name,
+      KeyConditionExpression=Key('message_group_uuid').eq(group_uuid)
+    )
+    print("RESP ===>",data['Items'])
+    
+    # recreate the message group rows with new SK value
+    for i in data['Items']:
+      delete_item = table.delete_item(Key={'pk': i['pk'], 'sk': i['sk']})
+      print("DELETE ===>",delete_item)
+      
+      response = table.put_item(
+        Item={
+          'pk': i['pk'],
+          'sk': sk,
+          'message_group_uuid':i['message_group_uuid'],
+          'message':message,
+          'user_display_name': i['user_display_name'],
+          'user_handle': i['user_handle'],
+          'user_uuid': i['user_uuid']
+        }
+      )
+      print("CREATE ===>",response)
+```
+Note: from the following  region_name='YOURREGION',
+ endpoint_url="http://dynamodb.YOURREGION.amazonaws.com" insert the region where you have deployed your resources.
+
+Follow the instruction to create the [lambda, role and trigger](https://scribehow.com/shared/How_to_create_a_Lambda_function_with_VPC_and_DynamoDB_triggers__EPcZPPH8T7SW8Yn5zsdAqw).
+
