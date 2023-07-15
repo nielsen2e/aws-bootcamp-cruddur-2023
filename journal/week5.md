@@ -1020,7 +1020,7 @@ print(response)
 Create the table using the script. This will create the dynamodb in your aws account. 
 
 ```py
-/bin/ddb/schema-load prod
+./bin/ddb/schema-load prod
 ```
 Note: If you returns the error **table already exists: cruddur-messages**, that means the table is already created in your account. if you dont see the table, make sure you are in the right region.
 Once created the table, active the **DynamoDB Stream**.
